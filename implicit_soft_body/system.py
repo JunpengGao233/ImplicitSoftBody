@@ -1,54 +1,94 @@
 import jax
 import jax.numpy as jnp
 
-from typing import Union, Optional, Tuple
+from .geometry.triangle import Triangle
+from .energy.neohookean import TriangleEnergy
+from .energy.friction import FrictionEnergy
+from .energy.collision import CollisionEnergy
+from .energy.spring import SpringEnergy
+from .energy.gravity import GravityEnergy
+from .energy.inertial import InertialEnergy
 
 
 class MassSpringSystem:
     def __init__(
         self,
-        mass: jax.Array,
-        spring: Tuple[jax.Array, jax.Array],
-        element: Tuple[jax.Array, jax.Array, jax.Array],
-        x0: Optional[jax.Array] = None,
-        v0: Optional[jax.Array] = None,  # dt might be changable here
-        fix_nodes:Optional[jax.Array] = None,
-        rsi: Optional[jax.Array] = None,  # not implemented yet
-    ) -> None:
-        
-        self.__mass = mass
-        self.__spring = spring
-        assert self.__spring[0].shape == self.__spring[1].shape
-        self.__element = element
-        assert self.__element[0].shape == self.__element[1].shape
-        assert self.__element[0].shape == self.__element[2].shape
-        self.__x0 = x0
-        self.__v0 = v0
-        self.__fix_nodes = fix_nodes
+        vertices: jax.Array,
+        springs: jax.Array,
+        triangles: jax.Array,
+        params: dict,
+    ):
+        self.springs = springs
+        self.vertices = vertices
+        self.triangles = triangles
+        self.gravity_energy = GravityEnergy(params["mass"])
+        self.spring_energy = SpringEnergy(params["k"], params["l0"])
+        self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"])
+        self.collison_energy = CollisionEnergy(params["k_collision"])
+        self.friction_energy = FrictionEnergy(
+            params["k_friction"], params["epsilon"], params["dt"]
+        )
+        self.inertial_energy = InertialEnergy(params["mass"], params["dt"])
+        self.x = self.vertices
+        self.x0 = self.vertices
+        self.v = jnp.zeros_like(self.x)
+        self.v0 = jnp.zeros_like(self.x)
+        self.dt = params["dt"]
+        self.a = jnp.ones(self.springs.shape[0])
 
-    @property
-    def mass(self) -> jax.Array:
-        return self.__mass
-    
-    @property
-    def num_nodes(self) -> int:
-        return self.__mass.shape[0]
-    
-    @property
-    def spring(self) -> Optional[jax.Array]:
-        return self.__spring
-    
-    @property
-    def num_springs(self) -> Optional[int]:
-        return self.__spring[0].shape[0]
-    
-    @property
-    def element(self) -> Tuple[jax.Array, jax.Array, jax.Array]:
-        return self.__element
-    
-    @property
-    def num_elements(self) -> int:
-        return self.__element[0].shape[0]
-    
+    def add_spring(self, vertices: jax.Array, springs: jax.Array, triangles: jax.Array):
+        for triangle in triangles:
+            self.triangles.append(triangle)
+        for spring in springs:
+            self.springs.append(spring)
+        for vertex in vertices:
+            self.vertices.append(vertex)
 
+    def forward(self, x: jax.Array):
+        def f(x):
+            x = jax.lax.stop_gradient(x)
+            x = jax.scipy.optimize.minimize(
+                self.total_energy,
+                self.x0,
+                method="newton-cg",
+                options={"disp": True},
+            )
+            return x
+        self.x = f(x)
 
+        return x
+    
+    def backward(self, x: jax.Array):
+        f =  jnp.negative(jax.grad(self.total_energy))
+        dLdx = jax.grad(self.loss)(x)
+        dfdx = jax.grad(f)(x)
+        z = jax.np.linalg.solve(dfdx, dLdx)
+        dfda = jax.grad(f)(self.a)
+        dLda = - z.T @ dfda
+
+        return dLda
+
+    def loss (self, x: jax.Array):
+        return - x[:, 0].mean()
+
+    def total_energy(self, x: jax.Array):
+        dt = self.dt
+
+        spring_vertices = jnp.take(x, self.springs, axis=0)  # (n, 2, 3)
+        potential_energy = 0
+        potential_energy += self.gravity_energy.forward(x)
+        potential_energy += self.spring_energy.forward(
+            spring_vertices[:, 0], spring_vertices[:, 1], self.a
+        )
+        potential_energy += self.neohookean_energy.forward(
+            self.x0[self.triangles], x[self.triangles]
+        )
+
+        external_energy = 0
+        external_energy += self.collison_energy.forward(x)
+        external_energy += self.friction_energy.forward(self.x0, x)
+
+        inertial_energy = 0
+        inertial_energy += self.inertial_energy.forward(x, self.x0, self.v0)
+
+        return dt* dt * (potential_energy + external_energy) + 0.5 * inertial_energy
