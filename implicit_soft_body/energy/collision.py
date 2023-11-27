@@ -1,21 +1,22 @@
-import jax
-import jax.numpy as jnp
-import jax.nn as nn
+import torch
+from torch import nn
 from typing import Union
+
+from .base import EnergyFunc
 
 
 class CollisionEnergy(EnergyFunc):
     def __init__(
         self,
-        k: Union[jax.Array, float],
+        k: Union[torch.Tensor, float],
     ):
         """
         Args:
             k: Collision energy coefficient
         """
-        self.__k: Union[jax.Array, float] = k
+        self.__k: Union[torch.Tensor, float] = k
 
-    def forward(self, x: jax.Array) -> jax.Array:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Collision energy function.
 
@@ -25,4 +26,4 @@ class CollisionEnergy(EnergyFunc):
             Collision energy.
         """
 
-        return 0.5 * self.__k * jnp.sum(nn.relu(-x[:, -1]) ** 2)
+        return 0.5 * self.__k * torch.sum(nn.functional.relu(-x[:, -1]) ** 2)

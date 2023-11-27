@@ -1,12 +1,11 @@
-import jax
-import jax.numpy as jnp
-import jax.nn as nn
+import torch
+from torch import nn
 from typing import Union
 from .base import EnergyFunc
 
 
 class GravityEnergy(EnergyFunc):
-    def __init__(self, m: jax.Array, g: Union[float, jax.Array] = 9.8, *args, **kwargs):
+    def __init__(self, m: torch.Tensor, g: Union[float, torch.Tensor] = 9.8):
         """
         Args:
             m: (n,) array of masses
@@ -15,7 +14,7 @@ class GravityEnergy(EnergyFunc):
         self.__g = g
         self.__m = m
 
-    def forward(self, x: jax.Array) -> jax.Array:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward gravity energy function.
 
@@ -26,4 +25,4 @@ class GravityEnergy(EnergyFunc):
         Returns:
             Gravity energy.
         """
-        return jnp.sum(self.__m * self.__g * x[:, -1])
+        return torch.sum(self.__m * self.__g * x[:, -1])

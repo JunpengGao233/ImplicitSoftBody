@@ -1,8 +1,7 @@
-import jax
-import jax.numpy as jnp
+import torch
 from typing import Callable, Union
 from .base import EnergyFunc
-from ..geometry.triangle import Triangle
+# from ..geometry.triangle import Triangle
 
 
 class TriangleEnergy(EnergyFunc):
@@ -17,8 +16,8 @@ class TriangleEnergy(EnergyFunc):
         self.__lamb = lamb
 
     def forward(
-        self, x0: jax.Array, x: jax.Array
-    ) -> jax.Array:
+        self, x0: torch.Tensor, x: torch.Tensor
+    ) -> torch.Tensor:
         """
         Forward Neo-Hookean energy function.
 
@@ -32,29 +31,29 @@ class TriangleEnergy(EnergyFunc):
         mu = self.__mu
         lamb = self.__lamb
         dim = verts1.shape[-1]
-        F = jnp.zeros((verts1.shape[0], dim, dim))
+        F = torch.zeros((verts1.shape[0], dim, dim))
         for i in range(3):
             # Compute the basis vectors of the original triangle
-            e = verts1[(i + 1) % 3] - verts1[i]
-            f = verts1[(i + 2) % 3] - verts1[i]
+            e = verts1[:, (i + 1) % 3] - verts1[:,i]
+            f = verts1[:, (i + 2) % 3] - verts1[:, i]
 
             # Compute the basis vectors of the deformed triangle
-            e_d = verts2[(i + 1) % 3] - verts2[i]
-            f_d = verts2[(i + 2) % 3] - verts2[i]
+            e_d = verts2[:, (i + 1) % 3] - verts2[:, i]
+            f_d = verts2[:, (i + 2) % 3] - verts2[:, i]
 
             # Construct the deformation gradient F
-            F += jnp.outer(e_d, e) + jnp.outer(f_d, f)
+            F += torch.outer(e_d, e) + torch.outer(f_d, f)
 
         # Calculate the Jacobian of the deformation
-        J = jnp.linalg.det(F)
-        I = jnp.dot(F.T, F)
+        J = torch.det(F)
+        I = torch.matmul(F.transpose(0, 2, 1), F)
         E = (
-            (mu / 2) * (jnp.trace(I) - 2)
-            - mu * jnp.log(J)
-            + (lamb / 2) * jnp.log(J) ** 2
+            (mu / 2) * (torch.trace(I) - 2)
+            - mu * torch.log(J)
+            + (lamb / 2) * torch.log(J) ** 2
         )
 
-        E = jnp.sum(E)
+        E = torch.sum(E)
 
         return E
 

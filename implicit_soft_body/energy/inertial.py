@@ -1,7 +1,6 @@
 from typing import Union
 
-import jax
-import jax.numpy as jnp
+import torch
 
 from .base import EnergyFunc
 
@@ -9,8 +8,8 @@ from .base import EnergyFunc
 class InertialEnergy(EnergyFunc):
     def __init__(
         self,
-        m: jax.Array,
-        h: Union[float, jax.Array] = 0.01,
+        m: torch.Tensor,
+        h: Union[float, torch.Tensor] = 0.01,
     ):
         """
         Args:
@@ -20,7 +19,7 @@ class InertialEnergy(EnergyFunc):
         self.__m = m
         self.__h = h
 
-    def forward(self, x: jax.Array, x0: jax.Array, v0: jax.Array) -> jax.Array:
+    def forward(self, x: torch.Tensor, x0: torch.Tensor, v0: torch.Tensor) -> torch.Tensor:
         """
         Forward inertial energy function.
 
@@ -30,4 +29,4 @@ class InertialEnergy(EnergyFunc):
             Inertial energy.
         """
         estimate_pos = x0 + self.__h * v0
-        return 0.5 * self.__m * jnp.sum((x - estimate_pos) ** 2)
+        return 0.5 * self.__m * torch.sum((x - estimate_pos) ** 2)

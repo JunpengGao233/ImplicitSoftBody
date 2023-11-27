@@ -1,7 +1,6 @@
-from abc import abstractmethod, ABC
-import jax
-from jax import grad
-from typing import Any, Callable
+from abc import ABC
+
+import torch
 
 
 class EnergyFunc(ABC):
@@ -9,7 +8,7 @@ class EnergyFunc(ABC):
         self,
         *args,
         **kwargs,
-    ) -> jax.Array:
+    ) -> torch.Tensor:
         """
         Compute energy with given position, velocity and action.
         """

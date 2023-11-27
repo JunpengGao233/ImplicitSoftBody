@@ -1,7 +1,6 @@
 from typing import Union
 
-import jax
-import jax.numpy as jnp
+import torch
 
 from .base import EnergyFunc
 
@@ -9,13 +8,13 @@ from .base import EnergyFunc
 class SpringEnergy(EnergyFunc):
     def __init__(
         self,
-        l0: jax.Array,
-        k: Union[jax.Array, float],
+        l0: torch.Tensor,
+        k: Union[torch.Tensor, float],
     ):
-        self.__l0: jax.Array = l0
-        self.__k: Union[jax.Array, float] = k
+        self.__l0: torch.Tensor = l0
+        self.__k: Union[torch.Tensor, float] = k
 
-    def forward(self, x0: jax.Array, x: jax.Array, a: jax.Array) -> jax.Array:
+    def forward(self, x0: torch.Tensor, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         """
         Forward spring energy function.
 
@@ -25,5 +24,5 @@ class SpringEnergy(EnergyFunc):
             a: (n, ) array of the actuation of the spring
 
         """
-        l = jnp.linalg.norm(x0 - x, axis=-1)
-        return 0.5 * self.__k * jnp.sum((l / (self.__l0 * a) - 1) ** 2)
+        l = torch.norm(x0 - x, dim=-1)
+        return 0.5 * self.__k * torch.sum((l / (self.__l0 * a) - 1) ** 2)
