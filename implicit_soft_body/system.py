@@ -33,7 +33,8 @@ class MassSpringSystem:
         self.v = torch.zeros_like(self.x)
         self.v0 = torch.zeros_like(self.x)
         self.dt = params["dt"]
-        self.a = torch.ones(self.springs.shape[0])
+        self.a = torch.ones(self.springs.shape[0]).requires_grad_(True)
+        self.max_iter = params["max_iter"]
 
     def add_spring(
         self, vertices: torch.Tensor, springs: torch.Tensor, triangles: torch.Tensor
@@ -46,25 +47,38 @@ class MassSpringSystem:
             self.vertices.append(vertex)
 
     def forward(self, x: torch.Tensor):
-        with torch.no_grad():
-            x = minimize(
-                self.total_energy,
-                self.x0,
-                # method="Newton-CG",
-                method="BFGS",
-                # options={"disp": True},
-            )
-            return x
-        self.x = f(x)
+        x.requires_grad = True
+        optimizer = torch.optim.LBFGS(
+            [x], lr=1e-2, tolerance_change=1e-4, max_iter=self.max_iter
+        )
+
+        def closure():
+            optimizer.zero_grad()
+            loss = self.total_energy(x)
+            loss.backward()
+            return loss
+
+        optimizer.step(closure)
 
         return x
 
     def backward(self, x: torch.Tensor):
-        f = jnp.negative(jax.grad(self.total_energy))
-        dLdx = jax.grad(self.loss)(x)
-        dfdx = jax.grad(f)(x)
-        z = jax.np.linalg.solve(dfdx, dLdx)
-        dfda = jax.grad(f)(self.a)
+        x.requires_grad = True
+        E = self.total_energy(x)
+        f = -(torch.autograd.grad(E, x, create_graph=True)[0])
+        L = self.loss(x)
+        dLdx = torch.autograd.grad(L, x)[0]
+        dLdx = dLdx.flatten()
+        dfdx = torch.autograd.functional.hessian(self.total_energy, x)
+        dfdx = dfdx.reshape(dLdx.shape[0], dLdx.shape[0])
+        z = torch.linalg.solve(dfdx, dLdx)
+
+        self.a.requires_grad = True
+        f_flat = f.flatten()
+        dfda = torch.zeros((f_flat.shape[0], self.a.shape[0]))
+        for i in range(dLdx.shape[0]):
+            dfda[i] = torch.autograd.grad(f_flat[i], self.a, retain_graph=True)[0]
+        z = z.reshape(-1, 1)
         dLda = -z.T @ dfda
 
         return dLda
@@ -75,7 +89,7 @@ class MassSpringSystem:
     def total_energy(self, x: torch.Tensor):
         dt = self.dt
 
-        springs_vertices = x[self.springs]
+        spring_vertices = x[self.springs]
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
         potential_energy += self.spring_energy.forward(
@@ -102,13 +116,15 @@ if __name__ == "__main__":
     params = {
         "mass": 1,
         "k_spring": 1,
-        "l0": torch.sqrt(2),
+        "l0": torch.sqrt(torch.tensor(2)),
         "mu": 1,
         "nu": 0.3,
         "k_collision": 1,
         "k_friction": 1,
         "epsilon": 0.01,
         "dt": 0.01,
+        "max_iter": 100,
     }
     system = MassSpringSystem(x, springs, triangles, params)
     system.forward(x)
+    system.backward(x)

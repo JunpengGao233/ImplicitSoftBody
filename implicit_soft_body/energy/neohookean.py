@@ -42,13 +42,20 @@ class TriangleEnergy(EnergyFunc):
             f_d = verts2[:, (i + 2) % 3] - verts2[:, i]
 
             # Construct the deformation gradient F
-            F += torch.outer(e_d, e) + torch.outer(f_d, f)
+            F += torch.einsum("ij,ik->ijk", e_d, e) + torch.einsum("ij,ik->ijk", f_d, f)
+            # F += torch.outer(e_d, e) + torch.outer(f_d, f)
 
         # Calculate the Jacobian of the deformation
+        # print(F.shape)
         J = torch.det(F)
-        I = torch.matmul(F.transpose(0, 2, 1), F)
+        I = torch.matmul(torch.transpose(F, 1, 2), F)
+        #compute trace of I along the last two dims
+        # print(I)
+        trace_I = torch.diagonal(I, dim1=-2, dim2=-1).sum(-1)
+        # trace_I = torch.einsum("ii->i", I)
+        # print(trace_I)
         E = (
-            (mu / 2) * (torch.trace(I) - 2)
+            (mu / 2) * (trace_I - 2)
             - mu * torch.log(J)
             + (lamb / 2) * torch.log(J) ** 2
         )
