@@ -21,7 +21,7 @@ class MassSpringSystem:
         self.vertices = vertices
         self.triangles = triangles
         self.gravity_energy = GravityEnergy(params["mass"])
-        self.spring_energy = SpringEnergy(params["k_spring"], params["l0"])
+        self.spring_energy = SpringEnergy(params["l0"], params["k_spring"])
         self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"])
         self.collison_energy = CollisionEnergy(params["k_collision"])
         self.friction_energy = FrictionEnergy(
@@ -93,7 +93,7 @@ class MassSpringSystem:
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
         potential_energy += self.spring_energy.forward(
-            spring_vertices[:, 0], spring_vertices[:, 1], self.a
+            spring_vertices[..., 0], spring_vertices[..., 1], self.a
         )
         potential_energy += self.neohookean_energy.forward(
             self.x0[self.triangles], x[self.triangles]
@@ -105,6 +105,7 @@ class MassSpringSystem:
 
         inertial_energy = 0
         inertial_energy += self.inertial_energy.forward(x, self.x0, self.v0)
+        print("inertial", self.inertial_energy.forward(x, self.x0, self.v0))
 
         return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
 
