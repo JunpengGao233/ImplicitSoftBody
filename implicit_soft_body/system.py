@@ -20,8 +20,9 @@ class MassSpringSystem:
         self.springs = springs
         self.vertices = vertices
         self.triangles = triangles
+        self.l0 = params["l0"]
         self.gravity_energy = GravityEnergy(params["mass"])
-        self.spring_energy = SpringEnergy(params["l0"], params["k_spring"])
+        self.spring_energy = SpringEnergy(self.l0, params["k_spring"])
         self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"])
         self.collison_energy = CollisionEnergy(params["k_collision"])
         self.friction_energy = FrictionEnergy(
@@ -33,7 +34,8 @@ class MassSpringSystem:
         self.v = torch.zeros_like(self.x)
         self.v0 = torch.zeros_like(self.x)
         self.dt = params["dt"]
-        self.a = torch.ones(self.springs.shape[0]).requires_grad_(True)
+        self.a = 0.5 * torch.ones_like(self.l0)
+        self.a.requires_grad = True
         self.max_iter = params["max_iter"]
 
     def add_spring(
@@ -47,18 +49,22 @@ class MassSpringSystem:
             self.vertices.append(vertex)
 
     def forward(self, x: torch.Tensor):
-        x.requires_grad = True
+        x0 = x.clone()
+        dx = torch.zeros_like(x).requires_grad_(True)
         optimizer = torch.optim.LBFGS(
-            [x], lr=1e-2, tolerance_change=1e-4, max_iter=self.max_iter
+            [dx], lr=1e-2, tolerance_change=1e-4, max_iter=5
         )
 
-        def closure():
-            optimizer.zero_grad()
-            loss = self.total_energy(x)
-            loss.backward()
-            return loss
-
-        optimizer.step(closure)
+        for epoch_i in range(self.max_iter):
+            dx0 = dx.clone()
+            def closure():
+                optimizer.zero_grad()
+                loss = self.total_energy(x0+dx)
+                loss.backward()
+                return loss
+            optimizer.step(closure)
+            if torch.norm(dx-dx0)/dx0.norm() < 1e-4:
+                break
 
         return x
 
@@ -105,7 +111,6 @@ class MassSpringSystem:
 
         inertial_energy = 0
         inertial_energy += self.inertial_energy.forward(x, self.x0, self.v0)
-        print("inertial", self.inertial_energy.forward(x, self.x0, self.v0))
 
         return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
 
