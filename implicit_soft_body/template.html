@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <script type="module">
+    import algovivo from "https://cdn.jsdelivr.net/gh/juniorrojas/algovivo@cbd6216b37c93474800d7681dc9f3503d38ecfdc/build/algovivo.min.mjs";
+
+    async function loadWasm() {
+      const response = await fetch("https://cdn.jsdelivr.net/gh/juniorrojas/algovivo@cbd6216b37c93474800d7681dc9f3503d38ecfdc/build/algovivo.wasm");
+      const wasm = await WebAssembly.instantiateStreaming(response);
+      return wasm.instance;
+    }
+
+    async function main() {
+      const system = new algovivo.System({
+        wasmInstance: await loadWasm()
+      });
+      system.set({
+        pos: {{ pos }},
+        triangles: {{ triangles }},
+        muscles: {{ muscles }}
+      });
+
+      const viewport = new algovivo.SystemViewport({ system });
+      document.body.appendChild(viewport.domElement);
+
+      let t = 0;
+      setInterval(() => {
+        for (let i = 0; i < system.numMuscles; i++) {
+          // set the signal of the i-th muscle
+          system.a.set(
+            [i], // this is an array because system.a is a tensor, and the index could be of arbitrary order
+            0.2 + 0.8 * (Math.cos(0.1 * t) * 0.5 + 0.5)
+          );
+        }
+        // another way would be to create an array with all the muscle signals,
+        // and then call a.set(muscleSignals),
+        // but in this case we used an alternative a.set([muscleId], muscleSignal)
+        
+        t++;
+
+        system.step();
+        viewport.render();
+      }, 1000 / 30);
+    }
+
+    main();
+  </script>
+</body>
+</html>
