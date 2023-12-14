@@ -8,6 +8,9 @@ from energy.spring import SpringEnergy
 from energy.gravity import GravityEnergy
 from energy.inertial import InertialEnergy
 
+from network import MLP
+import Sim
+
 
 class MassSpringSystem:
     def __init__(
@@ -16,6 +19,7 @@ class MassSpringSystem:
         springs: torch.Tensor,
         triangles: torch.Tensor,
         params: dict,
+        a: torch.nn.Module = None,
     ):
         self.springs = springs
         self.vertices = vertices
@@ -34,8 +38,7 @@ class MassSpringSystem:
         self.v = torch.zeros_like(self.x)
         self.v0 = torch.zeros_like(self.x)
         self.dt = params["dt"]
-        self.a = 0.5 * torch.ones_like(self.l0)
-        self.a.requires_grad = True
+        # self.a = (0.5 * torch.ones_like(self.l0)).requires_grad_() if a is None else a
         self.max_iter = params["max_iter"]
 
     def add_spring(
@@ -48,69 +51,36 @@ class MassSpringSystem:
         for vertex in vertices:
             self.vertices.append(vertex)
 
-    def forward(self, x: torch.Tensor):
-        x0 = x.clone()
-        dx = torch.zeros_like(x).requires_grad_(True)
-        optimizer = torch.optim.LBFGS(
-            [dx], lr=1e-2, tolerance_change=1e-4, max_iter=5
-        )
-
-        for epoch_i in range(self.max_iter):
-            dx0 = dx.clone()
-            def closure():
-                optimizer.zero_grad()
-                loss = self.total_energy(x0+dx)
-                loss.backward()
-                return loss
-            optimizer.step(closure)
-            if torch.norm(dx-dx0)/dx0.norm() < 1e-4:
-                break
-
-        return x
-
-    def backward(self, x: torch.Tensor):
-        x.requires_grad = True
-        E = self.total_energy(x)
-        f = -(torch.autograd.grad(E, x, create_graph=True)[0])
-        L = self.loss(x)
-        dLdx = torch.autograd.grad(L, x)[0]
-        dLdx = dLdx.flatten()
-        dfdx = torch.autograd.functional.hessian(self.total_energy, x)
-        dfdx = dfdx.reshape(dLdx.shape[0], dLdx.shape[0])
-        z = torch.linalg.solve(dfdx, dLdx)
-
-        self.a.requires_grad = True
-        f_flat = f.flatten()
-        dfda = torch.zeros((f_flat.shape[0], self.a.shape[0]))
-        for i in range(dLdx.shape[0]):
-            dfda[i] = torch.autograd.grad(f_flat[i], self.a, retain_graph=True)[0]
-        z = z.reshape(-1, 1)
-        dLda = -z.T @ dfda
-
-        return dLda
+    def forward(self, x0: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        x, v = Sim.DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
+        return x, v
 
     def loss(self, x: torch.Tensor):
         return -x[:, 0].mean()
 
-    def total_energy(self, x: torch.Tensor):
+    def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt
+        print("x ", x.requires_grad)
 
         spring_vertices = x[self.springs]
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
         potential_energy += self.spring_energy.forward(
-            spring_vertices[..., 0], spring_vertices[..., 1], self.a
+            spring_vertices[..., 0], spring_vertices[..., 1], a
         )
         potential_energy += self.neohookean_energy.forward(
-            self.x0[self.triangles], x[self.triangles]
+            x0[self.triangles], x[self.triangles]
         )
 
         external_energy = 0
         external_energy += self.collison_energy.forward(x)
-        external_energy += self.friction_energy.forward(self.x0, x)
+        external_energy += self.friction_energy.forward(x0, x)
 
         inertial_energy = 0
-        inertial_energy += self.inertial_energy.forward(x, self.x0, self.v0)
+        inertial_energy += self.inertial_energy.forward(x, x0, v0)
+        print("potential ", potential_energy.requires_grad)
+        print("external ", external_energy.requires_grad)
+        print("inertial ", inertial_energy.requires_grad)
 
         return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
 
