@@ -37,10 +37,8 @@ class DiffSim(torch.autograd.Function):
         a = a.detach().clone().requires_grad_(True)
         def energy_partial(x):
             return ctx.robot.total_energy(x0, x, v0, a)
-        def energy_partial_xa(x, a):
-            return ctx.robot.total_energy(x0, x, v0, a)
         with torch.enable_grad():
-            E = energy_partial_xa(x, a)
+            E = energy_partial(x)
             f = -(torch.autograd.grad(E, x, create_graph=True)[0])
         dLdx = grad_output_x
         dLdx = dLdx.flatten()
