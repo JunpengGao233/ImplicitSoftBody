@@ -33,37 +33,23 @@ class DiffSim(torch.autograd.Function):
     def backward(ctx, grad_output_x, grad_output_v) -> Any:
         
         x0, x, v0, v, a = ctx.saved_tensors
-        a.retain_grad()
-        # print(a.requires_grad)
-        # print(x.requires_grad)
-        # print(a)
+        x = x.detach().clone().requires_grad_(True)
+        a = a.detach().clone().requires_grad_(True)
         def energy_partial(x):
             return ctx.robot.total_energy(x0, x, v0, a)
-        x = x.detach().clone().requires_grad_(True)
+        def energy_partial_xa(x, a):
+            return ctx.robot.total_energy(x0, x, v0, a)
         with torch.enable_grad():
-            E = energy_partial(x)
-            # E.backward(create_graph=True)
-            # f = -x.grad
-            f = -(torch.autograd.grad(E, x, create_graph=True, retain_graph=True)[0])
+            E = energy_partial_xa(x, a)
+            f = -(torch.autograd.grad(E, x, create_graph=True)[0])
         dLdx = grad_output_x
         dLdx = dLdx.flatten()
         dfdx = torch.autograd.functional.hessian(energy_partial, x)
         dfdx = dfdx.reshape(dLdx.shape[0], dLdx.shape[0])
         z = torch.linalg.solve(dfdx, dLdx)
 
-        # dfda = torch.autograd.grad(f, a)[0]
-        f_flat = f.flatten()
-        zTf = z @ f_flat
-        dfda = torch.autograd.grad(zTf, a)[0]
-        # dfda = torch.zeros((f_flat.shape[0], a.shape[0]))
-        # dLda = a.grad
-        # dLda = torch.autograd.grad(zTf, a, retain_graph=True)[0]
-        
-
-        # dfda = torch.autograd.functional.jacobian(f_flat, a)
-        # for i in range(dLdx.shape[0]):
-        #     dfda[i] = torch.autograd.grad(f_flat[i], a)[0]
-        # z = z.reshape(-1, 1)
-        # dLda = -z.T @ dfda
-
+        with torch.enable_grad():
+            f_flat = f.flatten()
+            zTf = z @ f_flat
+            dLda = -torch.autograd.grad(zTf, a)[0]
         return None, None, dLda, None, None, None
