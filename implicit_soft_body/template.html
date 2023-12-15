@@ -18,15 +18,31 @@
         wasmInstance: await loadWasm()
       });
       system.set({
-        pos: {{ pos }},
-        triangles: {{ triangles }},
-        muscles: {{ muscles }}
+        pos: {{ pos.tolist() }},
+        triangles: {{ triangles.tolist() }},
+        muscles: {{ muscles.tolist() }}
       });
 
       const viewport = new algovivo.SystemViewport({ system });
       document.body.appendChild(viewport.domElement);
 
       let t = 0;
+
+      {% if actions is not none %}
+      let t_length = {{ actions.shape[0] }};
+      let actions = {{ actions.tolist() }};
+      setInterval(() => {
+          system.a.set(
+            actions[t]
+          );    
+        t++;
+        t %= t_length;
+
+        system.step();
+        viewport.render();
+      }, 1000 / 30);
+
+      {% else %}
       setInterval(() => {
         for (let i = 0; i < system.numMuscles; i++) {
           // set the signal of the i-th muscle
@@ -44,6 +60,7 @@
         system.step();
         viewport.render();
       }, 1000 / 30);
+      {% endif %}
     }
 
     main();
