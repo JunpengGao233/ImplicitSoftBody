@@ -29,4 +29,4 @@ class InertialEnergy(EnergyFunc):
             Inertial energy.
         """
         estimate_pos = x0 + self.__h * v0
-        return 0.5 * self.__m * torch.sum((x - estimate_pos) ** 2)
+        return self.__m * torch.sum((x - estimate_pos) ** 2)

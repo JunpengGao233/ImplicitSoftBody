@@ -26,4 +26,4 @@ class CollisionEnergy(EnergyFunc):
             Collision energy.
         """
 
-        return 0.5 * self.__k * torch.sum(nn.functional.relu(-x[:, -1]) ** 2)
+        return self.__k * torch.sum(nn.functional.relu(-x[:, -1]) ** 2)

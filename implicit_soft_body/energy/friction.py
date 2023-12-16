@@ -23,9 +23,6 @@ class FrictionEnergy(EnergyFunc):
     def forward(self, x0: torch.Tensor, x:torch.Tensor) -> torch.Tensor:
         vx = (x - x0) / self.__dt
         return (
-            0.5
-            * self.__k
-            * torch.sum(
-                torch.sum(vx[:, :-1] ** 2, axis=-1) * nn.functional.relu(-x0[:, -1] + self.__epsilon)
+            self.__k * 
+                torch.sum(vx[:, 0] ** 2, axis=-1) * nn.functional.relu(-x0[:, 1] + self.__epsilon)
             )
-        )
