@@ -41,12 +41,12 @@ class TriangleEnergy(EnergyFunc):
             x: (N, 3, dim) array of deformed triangle vertices
 
         """
-        verts1 = x0
-        verts2 = x
+        # verts1 = x0
+        verts = x
         mu = self.__mu
         lamb = self.__lamb
-        dim = verts1.shape[-1]
-        F = torch.zeros((verts1.shape[0], dim, dim))
+        dim = verts.shape[-1]
+        F = torch.zeros((verts.shape[0], dim, dim))
         element_matrix = torch.zeros((x.shape[0],2,2))
         e = x[:, 1] - x[:, 0]
         f = x[:, 2] - x[:, 0]

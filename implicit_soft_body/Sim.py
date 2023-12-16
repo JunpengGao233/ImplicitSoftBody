@@ -8,24 +8,28 @@ class DiffSim(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x0, v0, a, dt, max_iter, robot):
         ctx.robot = robot
-        dx = torch.zeros_like(x0).requires_grad_(True)
+        # dx = (1e-3*torch.randn_like(x0)).requires_grad_(True)
+        dx = (dt * v0).requires_grad_(True)
         optimizer = torch.optim.LBFGS(
-            [dx], lr=1e-3, tolerance_change=1e-4, max_iter=5
+            [dx], lr=1e-2, tolerance_change=1e-4, max_iter=5
         )
-
-        for epoch_i in range(max_iter):
+        # print(dx)
+        for epoch_i in range(1000):#range(max_iter):
+        # for epoch_i in range(max_iter):
             dx0 = dx.detach().clone()
             a = a.detach().clone().requires_grad_(True)
-            x0 = x0.detach().clone().requires_grad_(True)
-            v0 = v0.detach().clone().requires_grad_(True)
+            x0 = x0.detach().clone()#.requires_grad_(True)
+            v0 = v0.detach().clone()#.requires_grad_(True)
             def closure():
                 optimizer.zero_grad()
                 loss = robot.total_energy(x0, x0+dx, v0, a)
                 loss.backward(retain_graph=True)
+                # loss.backward()
                 return loss
             optimizer.step(closure)
-            if torch.norm(dx-dx0)/dx0.norm() < 1e-4:
+            if torch.norm(dx-dx0)/dx0.norm() < 1e-3:
                 break
+        print(f'epoch {epoch_i}: loss {dx.norm().item()}, relative loss change {torch.norm(dx-dx0)/dx0.norm()}')
         v = dx/dt
         x = x0+dx
         ctx.save_for_backward(x0, x, v0, v, a)

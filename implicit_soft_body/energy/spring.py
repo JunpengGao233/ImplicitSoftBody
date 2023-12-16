@@ -27,5 +27,4 @@ class SpringEnergy(EnergyFunc):
         l = torch.norm(x0 - x, dim=-1)
         al0 = a * self.__l0
         dl = (l - al0)/al0
-        print("l0 shape", self.__l0.shape)
         return 0.5 * self.__k * torch.sum(dl ** 2)
