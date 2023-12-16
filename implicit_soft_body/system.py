@@ -60,7 +60,6 @@ class MassSpringSystem:
 
     def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt
-        print("x ", x.requires_grad)
 
         spring_vertices = x[self.springs]
         potential_energy = 0
@@ -78,10 +77,6 @@ class MassSpringSystem:
 
         inertial_energy = 0
         inertial_energy += self.inertial_energy.forward(x, x0, v0)
-        print("potential ", potential_energy.requires_grad)
-        print("external ", external_energy.requires_grad)
-        print("inertial ", inertial_energy.requires_grad)
-
         return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
 
 
