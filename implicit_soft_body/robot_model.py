@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 import system
@@ -14,8 +15,8 @@ class SpringRobot(system.MassSpringSystem):
             "mass": 6.0714287757873535,
             "k_spring": 90,
             "l0": self.l0,
-            "mu": 1,
-            "nu": 0.3,
+            "mu": 500,
+            "nu": 50,
             "k_collision": 14000,
             "k_friction": 300,
             "epsilon": 0.01,
@@ -67,5 +68,5 @@ if __name__ == '__main__':
         if loss <= np.min(loss_history):
             np.save('actuation_seq_best.npy', actuation_seq)
     actuation_seq = np.array(actuation_seq)
-    np.save('actuation_seq.npy', actuation_seq)
-    
+    np.save('actuation_seq.npy', actuation_seq) 
+

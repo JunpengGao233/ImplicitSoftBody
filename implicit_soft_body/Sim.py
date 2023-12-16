@@ -10,7 +10,7 @@ class DiffSim(torch.autograd.Function):
         ctx.robot = robot
         dx = torch.zeros_like(x0).requires_grad_(True)
         optimizer = torch.optim.LBFGS(
-            [dx], lr=1e-2, tolerance_change=1e-4, max_iter=5
+            [dx], lr=1e-3, tolerance_change=1e-4, max_iter=5
         )
 
         for epoch_i in range(max_iter):
