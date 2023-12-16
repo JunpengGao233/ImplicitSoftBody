@@ -62,11 +62,11 @@ class MassSpringSystem:
     def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt
 
-        spring_vertices = x[self.springs]
+        # spring_vertices = x[self.springs]
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
         potential_energy += self.spring_energy.forward(
-            spring_vertices[..., 0], spring_vertices[..., 1], a
+            x[self.springs[:,0]], x[self.springs[:,1]], a
         )
         potential_energy += self.neohookean_energy.forward(
             x0[self.triangles], x[self.triangles]
