@@ -1,4 +1,6 @@
 # Mac OS X
+assets/
+*/assets
 .DS_Store
 */.DS_Store
 .vscode
