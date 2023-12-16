@@ -38,9 +38,9 @@ class MLP(nn.Module):
         return x
 
 fc1_weights_np = np.array(fc1_weights)
-print(fc1_weights_np.shape)
+# print(fc1_weights_np.shape)
 fc2_weights_np = np.array(fc2_weights)
-print(fc2_weights_np.shape)
+# print(fc2_weights_np.shape)
         
 model = MLP(fc1_weights_np.shape[1], fc1_weights_np.shape[0], fc2_weights_np.shape[0])
 
@@ -64,9 +64,9 @@ def postprocess(action:torch.Tensor, action_change:torch.Tensor, max_abs_da:floa
     return action
     
 
-def frame_project(data:torch.Tensor, center_id:int, forward_id:int, relative:bool=False)-> torch.Tensor:
-    center_ = data[center_id, :]
-    forward_ = data[forward_id, :]
+def frame_project_pos(pos:torch.Tensor, center_id:int, forward_id:int, relative:bool=False)-> torch.Tensor:
+    center_ = pos[center_id, :]
+    forward_ = pos[forward_id, :]
     
     vector_0 = forward_ - center_
     vector_0 = F.normalize(vector_0, dim=0)
@@ -75,17 +75,33 @@ def frame_project(data:torch.Tensor, center_id:int, forward_id:int, relative:boo
     vector_1 = rotation @ vector_0
 
     if relative:
-        relative_ = data - center_
+        relative_ = pos - center_
         relative_x = relative_ @ vector_0
         relative_y = relative_ @ vector_1
         return relative_x, relative_y
-    absolute_x = data @ vector_0
-    absolute_y = data @ vector_1
+    absolute_x = pos @ vector_0
+    absolute_y = pos @ vector_1
+    return absolute_x, absolute_y
+
+def frame_project_vel(pos:torch.Tensor, vel:torch.Tensor, center_id:int, forward_id:int, relative:bool=False)-> torch.Tensor:
+    center_ = pos[center_id, :]
+    forward_ = pos[forward_id, :]
+    
+    vector_0 = forward_ - center_
+    vector_0 = F.normalize(vector_0, dim=0)
+
+    rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32)
+    vector_1 = rotation @ vector_0
+
+    absolute_x = vel @ vector_0
+    absolute_y = vel @ vector_1
     return absolute_x, absolute_y
 
 def preprocess(pos:torch.Tensor, vel:torch.Tensor, center_id:int=center_vertex_id, forward_id:int=forward_vertex_id)->torch.Tensor:
-    pos_x, pos_y = frame_project(pos, center_id=center_id, forward_id=forward_id, relative=True)
-    vel_x, vel_y = frame_project(vel, center_id=center_id, forward_id=forward_id, relative=True)
+    pos_x, pos_y = frame_project_pos(pos, center_id=center_id, forward_id=forward_id, relative=True)
+    pos_output = torch.hstack((pos_x[:, None], pos_y[:, None])).flatten()
+    vel_x, vel_y = frame_project_vel(pos, vel, center_id=center_id, forward_id=forward_id, relative=False)
+    vel_output = torch.hstack((vel_x[:, None], vel_y[:, None])).flatten()
     
-    return torch.concat((pos_x,pos_y,vel_x,vel_y), dim=0)
+    return torch.concat((pos_output, vel_output), dim=0)
     
