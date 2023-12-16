@@ -5,7 +5,7 @@ from .base import EnergyFunc
 
 
 class TriangleEnergy(EnergyFunc):
-    def __init__(self, mu: float, lamb: float):
+    def __init__(self, mu: float, lamb: float, init_elements: torch.Tensor):
         """
         Args:
             mu: Neo-Hookean energy coefficient
@@ -14,6 +14,19 @@ class TriangleEnergy(EnergyFunc):
         """
         self.__mu = mu
         self.__lamb = lamb
+        num_triangles = init_elements.shape[0]
+        weight_matrix = torch.zeros((num_triangles,2,2))
+        for i in range(3):
+            e = init_elements[:, (i + 1) % 3] - init_elements[:, i]
+            f = init_elements[:, (i + 2) % 3] - init_elements[:, i]
+        weight_matrix[:,0] = e
+        weight_matrix[:,1] = f
+        weight_matrix_inv = torch.inverse(weight_matrix)
+        self.grad_undeformed_sample_weight = torch.zeros((num_triangles,3,2))
+        self.grad_undeformed_sample_weight[:,0] = -weight_matrix_inv[:,0] - weight_matrix_inv[:,1]
+        self.grad_undeformed_sample_weight[:,1] = weight_matrix_inv[:,0]
+        self.grad_undeformed_sample_weight[:,2] = weight_matrix_inv[:,1]
+
 
     def forward(
         self, x0: torch.Tensor, x: torch.Tensor
@@ -33,17 +46,7 @@ class TriangleEnergy(EnergyFunc):
         dim = verts1.shape[-1]
         F = torch.zeros((verts1.shape[0], dim, dim))
         for i in range(3):
-            # Compute the basis vectors of the original triangle
-            e = verts1[:, (i + 1) % 3] - verts1[:,i]
-            f = verts1[:, (i + 2) % 3] - verts1[:, i]
-
-            # Compute the basis vectors of the deformed triangle
-            e_d = verts2[:, (i + 1) % 3] - verts2[:, i]
-            f_d = verts2[:, (i + 2) % 3] - verts2[:, i]
-
-            # Construct the deformation gradient F
-            F += torch.einsum("ij,ik->ijk", e_d, e) + torch.einsum("ij,ik->ijk", f_d, f)
-            # F += torch.outer(e_d, e) + torch.outer(f_d, f)
+            F += torch.matmul(x[:, i].unsqueeze(-1), self.grad_undeformed_sample_weight[:, i].unsqueeze(1))
 
         # Calculate the Jacobian of the deformation
         # print(F.shape)
@@ -54,6 +57,10 @@ class TriangleEnergy(EnergyFunc):
         trace_I = torch.diagonal(I, dim1=-2, dim2=-1).sum(-1)
         # trace_I = torch.einsum("ii->i", I)
         # print(trace_I)
+        # qlogJ = -1.5 + 2 * J - 0.5 * J * J
+        # psi_mu = 0.5 * mu * (trace_I - 2) - mu * qlogJ
+        # psi_lambda = 0.5 * lamb * qlogJ * qlogJ
+        # E = psi_mu + psi_lambda
         E = (
             (mu / 2) * (trace_I - 2)
             - mu * torch.log(J)
