@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     # x2 = robot.forward(robot.x)
     num_epochs = 100
-    num_frames = 1
+    num_frames = 3
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
@@ -45,11 +45,13 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             x = robot.x
             v = robot.v
+            a = robot.l0
             for i in range(num_frames):
-                a = network(torch.cat([x.flatten(), v.flatten()], dim=0))
+                da = network(torch.cat([x.flatten(), v.flatten()], dim=0))
+                a = a + da
+                a = torch.clamp(a, 0.25, 1.0)
                 # import pdb; pdb.set_trace()
                 x, v = robot.forward(x, v, a)
-                print(x)
                 actuation_seq.append(a.detach().numpy())
             loss = robot.loss(x)
             loss.backward()
@@ -58,10 +60,10 @@ if __name__ == '__main__':
         loss = optimizer.step(closure)
         if torch.abs((loss-loss_last)/loss) < 1e-4:
             break
-        loss_last = loss
         with np.printoptions(precision=3):
             print(f'epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
         loss_history.append(loss.item())
+        loss_last = loss
         if loss <= np.min(loss_history):
             np.save('actuation_seq_best.npy', actuation_seq)
     actuation_seq = np.array(actuation_seq)

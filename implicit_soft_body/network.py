@@ -1,5 +1,5 @@
 import torch
-
+from torch import nn
 
 class MLP(torch.nn.Module):
     """
@@ -11,22 +11,20 @@ class MLP(torch.nn.Module):
         hidden_sizes = [
             input_size,
             output_size,
-            # output_size,
-            # output_size,
         ]
-        layers = []
-        for i in range(len(hidden_sizes) - 1):
-            cur_layer = torch.nn.Linear(hidden_sizes[i], hidden_sizes[i + 1])
-            layers.append(cur_layer)
-            layers.append(act_fn)
-        layers = layers[:-1]
+        model = nn.Sequential(
+        nn.Linear(input_size, 32),
+        nn.ReLU(),
+        nn.Linear(32, output_size),
+        nn.Tanh()
+        )
 
-        self.hidden_sizes = hidden_sizes
-        self.network = torch.nn.Sequential(*layers)
+        self.network = model
 
     def forward(self, x):
         """Forward pass"""
         x = self.network(x)
+        x = torch.clamp(x, -0.3, 0.3)
         return x
 
     def count_parameters(self):
