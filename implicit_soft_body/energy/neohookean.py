@@ -57,15 +57,16 @@ class TriangleEnergy(EnergyFunc):
         trace_I = torch.diagonal(I, dim1=-2, dim2=-1).sum(-1)
         # trace_I = torch.einsum("ii->i", I)
         # print(trace_I)
-        # qlogJ = -1.5 + 2 * J - 0.5 * J * J
-        # psi_mu = 0.5 * mu * (trace_I - 2) - mu * qlogJ
-        # psi_lambda = 0.5 * lamb * qlogJ * qlogJ
-        # E = psi_mu + psi_lambda
-        E = (
-            (mu / 2) * (trace_I - 2)
-            - mu * torch.log(J)
-            + (lamb / 2) * torch.log(J) ** 2
-        )
+        qlogJ = -1.5 + 2 * J - 0.5 * J * J
+        psi_mu = 0.5 * mu * (trace_I - 2) - mu * qlogJ
+        psi_lambda = 0.5 * lamb * qlogJ * qlogJ
+        E = psi_mu + psi_lambda
+        # print(J)
+        # E = (
+        #     (mu / 2) * (trace_I - 2)
+        #     - mu * torch.log(J)
+        #     + (lamb / 2) * torch.log(J) ** 2
+        # )
 
         E = torch.sum(E)
 
