@@ -14,7 +14,10 @@ class DiffSim(torch.autograd.Function):
         )
 
         for epoch_i in range(max_iter):
-            dx0 = dx.clone()
+            dx0 = dx.detach().clone()
+            a = a.detach().clone().requires_grad_(True)
+            x0 = x0.detach().clone().requires_grad_(True)
+            v0 = v0.detach().clone().requires_grad_(True)
             def closure():
                 optimizer.zero_grad()
                 loss = robot.total_energy(x0, x0+dx, v0, a)
@@ -31,6 +34,7 @@ class DiffSim(torch.autograd.Function):
     
     @staticmethod
     def backward(ctx, grad_output_x, grad_output_v) -> Any:
+        print("backward")
         
         x0, x, v0, v, a = ctx.saved_tensors
         x = x.detach().clone().requires_grad_(True)
