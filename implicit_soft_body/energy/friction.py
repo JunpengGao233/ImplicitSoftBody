@@ -26,6 +26,6 @@ class FrictionEnergy(EnergyFunc):
             0.5
             * self.__k
             * torch.sum(
-                torch.sum(vx[:, :-1] ** 2, axis=-1) * nn.functional.relu(-x[:, -1] + self.__epsilon)
+                torch.sum(vx[:, :-1] ** 2, axis=-1) * nn.functional.relu(-x0[:, -1] + self.__epsilon)
             )
         )

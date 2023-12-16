@@ -11,16 +11,16 @@ class SpringRobot(system.MassSpringSystem):
         self.springs = torch.tensor([[2, 4], [8, 1], [1, 12], [12, 8], [15, 11], [15, 16], [16, 11], [18, 17], [18, 23], [17, 23], [0, 20], [5, 0], [5, 20], [22, 19], [22, 24], [19, 24], [12, 16], [3, 2], [4, 3]])
         self.l0 = torch.tensor([0.5060138702392578, 0.47226181626319885, 0.34279194474220276, 0.5836523175239563, 0.6742079257965088, 0.33541035652160645, 0.6603834629058838, 0.3164254426956177, 0.4411633014678955, 0.7115125060081482, 0.3771687150001526, 0.39947620034217834, 0.2214723825454712, 0.34889116883277893, 0.31212979555130005, 0.5707889795303345, 0.3986302614212036, 0.22810354828834534, 0.42167073488235474])
         params = {
-            "mass": 1,
-            "k_spring": 1,
+            "mass": 6.0714287757873535,
+            "k_spring": 90,
             "l0": self.l0,
             "mu": 1,
             "nu": 0.3,
-            "k_collision": 1,
-            "k_friction": 1,
+            "k_collision": 14000,
+            "k_friction": 300,
             "epsilon": 0.01,
-            "dt": 0.01,
-            "max_iter": 1000,
+            "dt": 0.033,
+            "max_iter": 100,
         }
         super().__init__(self.x, self.springs, self.triangles, params)
     
@@ -30,28 +30,40 @@ if __name__ == '__main__':
 
     # x2 = robot.forward(robot.x)
     num_epochs = 100
-    num_frames = 20
+    num_frames = 1
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
     torch.random.manual_seed(42)
     network = MLP(input_size*4, output_size)
     optimizer = torch.optim.Adam(network.parameters(), lr=1e-2)
+    loss_last = 1e10
     for epoch in range(num_epochs):
+        print(f'epoch {epoch}')
+        actuation_seq = []
         def closure():
             optimizer.zero_grad()
             x = robot.x
             v = robot.v
-            a = network(torch.cat([robot.x.flatten(), robot.v.flatten()], dim=0))
             for i in range(num_frames):
-                x, v = robot.forward(x, v, a)
                 a = network(torch.cat([x.flatten(), v.flatten()], dim=0))
+                # import pdb; pdb.set_trace()
+                x, v = robot.forward(x, v, a)
+                print(x)
+                actuation_seq.append(a.detach().numpy())
             loss = robot.loss(x)
             loss.backward()
             return loss
     
         loss = optimizer.step(closure)
+        if torch.abs((loss-loss_last)/loss) < 1e-4:
+            break
+        loss_last = loss
         with np.printoptions(precision=3):
-            print(f'epoch {epoch}: loss {loss.item()}')
-    loss_history.append(loss.item())
-
+            print(f'epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
+        loss_history.append(loss.item())
+        if loss <= np.min(loss_history):
+            np.save('actuation_seq_best.npy', actuation_seq)
+    actuation_seq = np.array(actuation_seq)
+    np.save('actuation_seq.npy', actuation_seq)
+    
