@@ -25,9 +25,10 @@ class MassSpringSystem:
         self.vertices = vertices
         self.triangles = triangles
         self.l0 = params["l0"]
+        triangles_vertices = vertices[triangles]
         self.gravity_energy = GravityEnergy(params["mass"])
         self.spring_energy = SpringEnergy(self.l0, params["k_spring"])
-        self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"])
+        self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"], triangles_vertices)
         self.collison_energy = CollisionEnergy(params["k_collision"])
         self.friction_energy = FrictionEnergy(
             params["k_friction"], params["epsilon"], params["dt"]
