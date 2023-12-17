@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 __CURRENT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 policy_file_path = os.path.join(__CURRENT_PATH,  "policy.json")
@@ -23,6 +24,8 @@ min_a = policy_dict['min_a']
 max_abs_da = policy_dict['max_abs_da']
 center_vertex_id = policy_dict['center_vertex_id']
 forward_vertex_id = policy_dict['forward_vertex_id']
+
+print(f"min_a {min_a}, max_abs_da {max_abs_da}")
 
 class MLP(nn.Module):
     def __init__(self, input_size:int, hidden_size:int, output_size:int):
@@ -56,7 +59,9 @@ test_tensor = torch.ones((fc1_weights_np.shape[1],))
 predict = model(test_tensor)
 
 
-def postprocess(action:torch.Tensor, action_change:torch.Tensor, max_abs_da:float=max_abs_da, min_a:float=min_a):
+def postprocess(action:torch.Tensor, action_change:torch.Tensor,noise_std:Optional[float]= None, max_abs_da:float=max_abs_da, min_a:float=min_a):
+    if noise_std is not None:
+        action_change += noise_std * torch.randn_like(action_change)
     action_change = torch.clamp(action_change, min=-max_abs_da, max=max_abs_da)
     
     action = action + action_change
@@ -91,7 +96,7 @@ def frame_project_vel(pos:torch.Tensor, vel:torch.Tensor, center_id:int, forward
     vector_0 = F.normalize(vector_0, dim=0).to(vector_0.device)
 
     rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32,device=vector_0.device)
-    print(rotation.device)
+    # print(rotation.device)
     vector_1 = rotation @ vector_0
 
     absolute_x = vel @ vector_0
