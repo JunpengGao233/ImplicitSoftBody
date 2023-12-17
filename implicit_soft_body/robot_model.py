@@ -4,6 +4,7 @@ import numpy as np
 
 import system
 from network import MLP
+from load_weights import model, preprocess, postprocess
 
 class SpringRobot(system.MassSpringSystem):
     def __init__(self) -> None:
@@ -31,13 +32,14 @@ if __name__ == '__main__':
 
     # x2 = robot.forward(robot.x)
     num_epochs = 100
-    num_frames = 3
+    num_frames = 100
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
     torch.random.manual_seed(42)
-    network = MLP(input_size*4, output_size)
-    optimizer = torch.optim.Adam(network.parameters(), lr=1e-2)
+    # network = MLP(input_size*4, output_size)
+    network = model
+    optimizer = torch.optim.Adam(network.parameters(), lr=1e-1)
     loss_last = 1e10
     for epoch in range(num_epochs):
         print(f'epoch {epoch}')
@@ -46,15 +48,20 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             x = robot.x
             v = robot.v
-            a = robot.l0
+            a = torch.ones_like(robot.l0)
+            last_p = robot.loss(x)
+            loss = 0
             for i in range(num_frames):
-                da = network(torch.cat([x.flatten(), v.flatten()], dim=0))
-                a = a + da
-                a = torch.clamp(a, 0.25, 1.0)
-                # import pdb; pdb.set_trace()
+                da = network(preprocess(x,v))
+                a = postprocess(a, da)
                 x, v = robot.forward(x, v, a)
                 actuation_seq.append(a.detach().numpy())
-            loss = robot.loss(x)
+                curr_p = robot.loss(x)
+                loss += curr_p - last_p
+                last_p = curr_p
+                
+            # loss /= num_frames
+            loss *= -1
             loss.backward()
             return loss
     
@@ -67,6 +74,7 @@ if __name__ == '__main__':
         loss_last = loss
         if loss <= np.min(loss_history):
             np.save('actuation_seq_best.npy', actuation_seq)
+        # print(actuation_seq)
     actuation_seq = np.array(actuation_seq)
     np.save('actuation_seq.npy', actuation_seq) 
 
