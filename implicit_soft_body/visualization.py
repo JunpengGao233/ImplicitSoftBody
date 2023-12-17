@@ -34,7 +34,9 @@ if __name__=="__main__":
     random_actions = np.random.rand(100, actions.shape[1]) * 0.5 + 0.9
     random_actions = random_actions * actions
 
-    output = render_robot(random_actions)
-    with open('output.html', 'w') as f:
+    # output = render_robot(random_actions)
+    best_action = np.load("actuation_seq_best.npy")
+    output = render_robot(best_action)
+    with open('best_trained.html', 'w') as f:
         f.write(output)
 

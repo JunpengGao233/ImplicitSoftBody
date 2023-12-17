@@ -52,7 +52,7 @@ class DiffSim(torch.autograd.Function):
             f = -(torch.autograd.grad(E, x_flat, create_graph=True)[0])
         dLdx = grad_output_x
         dLdx = dLdx.flatten()
-        dfdx = torch.autograd.functional.hessian(energy_partial, x_flat)
+        dfdx = -torch.autograd.functional.hessian(energy_partial, x_flat)
         dfdx = torch.transpose(dfdx, 0, 1)
         z = torch.linalg.solve(dfdx, dLdx)
 
