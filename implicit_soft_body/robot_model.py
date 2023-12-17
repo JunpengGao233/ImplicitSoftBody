@@ -30,20 +30,21 @@ class SpringRobot(system.MassSpringSystem):
 
 if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # device = 'cpu'
     robot = SpringRobot(device)
 
 
     # x2 = robot.forward(robot.x)
     num_epochs = 30
-    num_frames = 20#0
+    num_frames = 100
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
     torch.random.manual_seed(42)
-    # network = MLP(4*input_size, output_size)
-    network = model
+    network = MLP(4*input_size, output_size)
+    # network = model
     network = network.to(device)
-    optimizer = torch.optim.Adam(network.parameters(),lr=1e-3)
+    optimizer = torch.optim.Adam(network.parameters(),lr=1e-1)
     loss_last = 1e10
     for epoch in range(num_epochs):
         print(f'epoch {epoch}')
@@ -62,7 +63,7 @@ if __name__ == '__main__':
                 da = network(preprocess(x,v))
                 a = postprocess(a, da)
                 x, v = robot.forward(x, v, a)
-                actuation_seq.append(a.detach().numpy())
+                actuation_seq.append(a.detach().cpu().numpy())
                 curr_p = robot.x_pos(x)
                 loss += curr_p - last_p
                 last_p = curr_p
@@ -75,10 +76,10 @@ if __name__ == '__main__':
         loss = optimizer.step(closure)
         # loss = closure()
         # make_dot(loss).render("attached", format="png")
-        if torch.abs((loss-loss_last)/loss) < 1e-4:
-            break
         with np.printoptions(precision=3):
             print(f'epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
+        # if torch.abs((loss-loss_last)/loss) < 1e-4:
+        #     break
         loss_history.append(loss.item())
         loss_last = loss
         if loss <= np.min(loss_history):
