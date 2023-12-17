@@ -44,18 +44,20 @@ class DiffSim(torch.autograd.Function):
         x = x.detach().clone().requires_grad_(True)
         a = a.detach().clone().requires_grad_(True)
         def energy_partial(x):
+            x = x.reshape(-1,2)
             return ctx.robot.total_energy(x0, x, v0, a)
         with torch.enable_grad():
-            E = energy_partial(x)
-            f = -(torch.autograd.grad(E, x, create_graph=True)[0])
+            x_flat = x.flatten()
+            E = energy_partial(x_flat)
+            f = -(torch.autograd.grad(E, x_flat, create_graph=True)[0])
         dLdx = grad_output_x
         dLdx = dLdx.flatten()
-        dfdx = torch.autograd.functional.hessian(energy_partial, x)
-        dfdx = dfdx.reshape(dLdx.shape[0], dLdx.shape[0])
+        dfdx = torch.autograd.functional.hessian(energy_partial, x_flat)
+        dfdx = torch.transpose(dfdx, 0, 1)
         z = torch.linalg.solve(dfdx, dLdx)
 
         with torch.enable_grad():
-            f_flat = f.flatten()
-            zTf = z @ f_flat
+            # f_flat = f.flatten()
+            zTf = z.reshape(1,-1) @ f
             dLda = -torch.autograd.grad(zTf, a)[0]
         return None, None, dLda, None, None, None

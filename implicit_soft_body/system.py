@@ -56,8 +56,8 @@ class MassSpringSystem:
         x, v = Sim.DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
         return x, v
 
-    def loss(self, x: torch.Tensor):
-        return -x[:, 0].mean()
+    def x_pos(self, x: torch.Tensor):
+        return x[:, 0].mean()
 
     def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt

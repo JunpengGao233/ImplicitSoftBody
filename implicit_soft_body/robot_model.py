@@ -6,6 +6,7 @@ import system
 from network import MLP
 from load_weights import model, preprocess, postprocess
 
+from torchviz import make_dot
 class SpringRobot(system.MassSpringSystem):
     def __init__(self) -> None:
         self.x = torch.tensor([[1.6825000047683716, 0.5799999833106995], [1.6675000190734863, 0.9549999833106995], [1.315000057220459, 0.9399999976158142], [1.472499966621399, 0.7749999761581421], [1.2100000381469727, 0.4449999928474426], [1.375, 0.32499998807907104], [1.4800000190734863, 1.1649999618530273], [1.225000023841858, 1.4500000476837158], [1.75, 1.4199999570846558], [1.600000023841858, 1.8700000047683716], [2.5, 2.049999952316284], [2.424999952316284, 1.5850000381469727], [2.005000114440918, 0.8949999809265137], [2.755000114440918, 1.5700000524520874], [3.0850000381469727, 1.4950000047683716], [2.7325000762939453, 0.9850000143051147], [2.4024999141693115, 0.925000011920929], [3.077500104904175, 0.9700000286102295], [3.047499895095825, 0.6549999713897705], [2.882499933242798, 0.5950000286102295], [1.5700000524520874, 0.2199999988079071], [1.1349999904632568, 0.009999999776482582], [3.0325000286102295, 0.2800000011920929], [3.302500009536743, 0.29499998688697815], [2.8524999618530273, 0.02500000037252903], [3.497499942779541, 0.12999999523162842], [1.7350000143051147, 0.009999999776482582], [2.0950000286102295, 1.6150000095367432]])
@@ -31,15 +32,15 @@ if __name__ == '__main__':
     robot = SpringRobot()
 
     # x2 = robot.forward(robot.x)
-    num_epochs = 100
-    num_frames = 100
+    num_epochs = 30
+    num_frames = 20#0
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
     torch.random.manual_seed(42)
     # network = MLP(input_size*4, output_size)
     network = model
-    optimizer = torch.optim.Adam(network.parameters(), lr=1e-1)
+    optimizer = torch.optim.Adam(network.parameters(),lr=1e-3)
     loss_last = 1e10
     for epoch in range(num_epochs):
         print(f'epoch {epoch}')
@@ -49,14 +50,14 @@ if __name__ == '__main__':
             x = robot.x
             v = robot.v
             a = torch.ones_like(robot.l0)
-            last_p = robot.loss(x)
+            last_p = robot.x_pos(x)
             loss = 0
             for i in range(num_frames):
                 da = network(preprocess(x,v))
                 a = postprocess(a, da)
                 x, v = robot.forward(x, v, a)
                 actuation_seq.append(a.detach().numpy())
-                curr_p = robot.loss(x)
+                curr_p = robot.x_pos(x)
                 loss += curr_p - last_p
                 last_p = curr_p
                 
@@ -66,6 +67,8 @@ if __name__ == '__main__':
             return loss
     
         loss = optimizer.step(closure)
+        # loss = closure()
+        # make_dot(loss).render("attached", format="png")
         if torch.abs((loss-loss_last)/loss) < 1e-4:
             break
         with np.printoptions(precision=3):
@@ -73,6 +76,7 @@ if __name__ == '__main__':
         loss_history.append(loss.item())
         loss_last = loss
         if loss <= np.min(loss_history):
+            print("saving best, loss:", loss)
             np.save('actuation_seq_best.npy', actuation_seq)
         # print(actuation_seq)
     actuation_seq = np.array(actuation_seq)
