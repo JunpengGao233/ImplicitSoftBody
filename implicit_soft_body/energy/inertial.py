@@ -8,16 +8,22 @@ from .base import EnergyFunc
 class InertialEnergy(EnergyFunc):
     def __init__(
         self,
-        m: torch.Tensor,
-        h: Union[float, torch.Tensor] = 0.01,
+        m: Union[torch.Tensor, float],
+        h: float = 0.01,
+        device:Union[torch.device, str]="cpu"
     ):
         """
         Args:
-            m: (n,) array of masses or float if all masses are the same
-            h: (1,) array of time step
+            m: (n,) array of masses or float if all masses are the same it can be float
+            h: (float), timestep
         """
-        self.__m = m
+        if isinstance(m, torch.Tensor):
+            self.__m = m.to(device)
+        else:
+            self.__m = m
+
         self.__h = h
+        self.device = device
 
     def forward(self, x: torch.Tensor, x0: torch.Tensor, v0: torch.Tensor) -> torch.Tensor:
         """

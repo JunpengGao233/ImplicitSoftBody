@@ -5,14 +5,24 @@ from .base import EnergyFunc
 
 
 class GravityEnergy(EnergyFunc):
-    def __init__(self, m: torch.Tensor, g: Union[float, torch.Tensor] = 9.8):
+    def __init__(self,
+        m: Union[torch.Tensor,float],
+        g: Union[float, torch.Tensor] = 9.8,
+        device:Union[torch.Tensor, str] = 'cpu'):
         """
         Args:
             m: (n,) array of masses
             g: (1,) array of gravity acceleration
         """
-        self.__g = g
-        self.__m = m
+        if isinstance(m, torch.Tensor):
+            self.__m = m.to(device)
+        else:
+            self.__m = m
+        if isinstance(g, torch.Tensor):
+            self.__g = g.to(device)
+        else:
+            self.__g = g
+        self.device = device
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

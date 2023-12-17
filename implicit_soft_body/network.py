@@ -6,16 +6,12 @@ class MLP(torch.nn.Module):
     Multilayer Perceptron.
     """
 
-    def __init__(self, input_size, output_size, act_fn=torch.nn.ELU()):
+    def __init__(self, input_size,output_size,hidden_size=32):
         super().__init__()
-        hidden_sizes = [
-            input_size,
-            output_size,
-        ]
         model = nn.Sequential(
-        nn.Linear(input_size, 32),
+        nn.Linear(input_size, hidden_size),
         nn.ReLU(),
-        nn.Linear(32, output_size),
+        nn.Linear(hidden_size, output_size),
         nn.Tanh()
         )
 

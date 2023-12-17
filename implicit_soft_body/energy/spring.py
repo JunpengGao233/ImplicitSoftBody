@@ -10,9 +10,14 @@ class SpringEnergy(EnergyFunc):
         self,
         l0: torch.Tensor,
         k: Union[torch.Tensor, float],
-    ):
-        self.__l0: torch.Tensor = l0
-        self.__k: Union[torch.Tensor, float] = k
+        device:Union[torch.device, str] = 'cpu'
+    ):  
+        self.__l0: torch.Tensor = l0.to(device)
+        if isinstance(k, torch.Tensor):
+            self.__k = k.to(torch.Tensor)
+        else:
+            self.__k = k
+        self.device = device
 
     def forward(self, x0: torch.Tensor, x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
         """
