@@ -71,7 +71,7 @@ def frame_project_pos(pos:torch.Tensor, center_id:int, forward_id:int, relative:
     vector_0 = forward_ - center_
     vector_0 = F.normalize(vector_0, dim=0)
 
-    rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32)
+    rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32, device=vector_0.device)
     vector_1 = rotation @ vector_0
 
     if relative:
@@ -88,9 +88,10 @@ def frame_project_vel(pos:torch.Tensor, vel:torch.Tensor, center_id:int, forward
     forward_ = pos[forward_id, :]
     
     vector_0 = forward_ - center_
-    vector_0 = F.normalize(vector_0, dim=0)
+    vector_0 = F.normalize(vector_0, dim=0).to(vector_0.device)
 
-    rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32)
+    rotation = torch.tensor([[0, -1], [1, 0]], dtype=torch.float32,device=vector_0.device)
+    print(rotation.device)
     vector_1 = rotation @ vector_0
 
     absolute_x = vel @ vector_0

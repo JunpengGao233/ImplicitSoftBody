@@ -8,6 +8,7 @@ from energy.spring import SpringEnergy
 from energy.gravity import GravityEnergy
 from energy.inertial import InertialEnergy
 
+from typing import Union
 from network import MLP
 import Sim
 
@@ -19,28 +20,31 @@ class MassSpringSystem:
         springs: torch.Tensor,
         triangles: torch.Tensor,
         params: dict,
+        device:Union[torch.device, str]='cpu',
         a: torch.nn.Module = None,
-    ):
-        self.springs = springs
-        self.vertices = vertices
-        self.triangles = triangles
-        self.l0 = params["l0"]
+    ):  
+        self.device = device
+        self.springs = springs.to(device)
+        self.vertices = vertices.to(device)
+        self.triangles = triangles.to(device)
+        self.l0 = params["l0"].to(device)  # parames["l0"]
         triangles_vertices = vertices[triangles]
-        self.gravity_energy = GravityEnergy(params["mass"])
-        self.spring_energy = SpringEnergy(self.l0, params["k_spring"])
-        self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"], triangles_vertices)
-        self.collison_energy = CollisionEnergy(params["k_collision"])
+        self.gravity_energy = GravityEnergy(params["mass"], device=device)
+        self.spring_energy = SpringEnergy(self.l0, params["k_spring"], device=device)
+        self.neohookean_energy = TriangleEnergy(params["mu"], params["nu"], triangles_vertices, device=device)
+        self.collison_energy = CollisionEnergy(params["k_collision"], device=device)
         self.friction_energy = FrictionEnergy(
-            params["k_friction"], params["epsilon"], params["dt"]
+            params["k_friction"], params["epsilon"], params["dt"], device=device
         )
-        self.inertial_energy = InertialEnergy(params["mass"], params["dt"])
-        self.x = self.vertices
-        self.x0 = self.vertices
-        self.v = torch.zeros_like(self.x)
-        self.v0 = torch.zeros_like(self.x)
+        self.inertial_energy = InertialEnergy(params["mass"], params["dt"], device=device)
+        self.x = self.vertices.to(device)
+        self.x0 = self.vertices.to(device)
+        self.v = torch.zeros_like(self.x, device=device)
+        self.v0 = torch.zeros_like(self.x, device=device)
         self.dt = params["dt"]
         # self.a = (0.5 * torch.ones_like(self.l0)).requires_grad_() if a is None else a
         self.max_iter = params["max_iter"]
+        self.device = device
 
     def add_spring(
         self, vertices: torch.Tensor, springs: torch.Tensor, triangles: torch.Tensor

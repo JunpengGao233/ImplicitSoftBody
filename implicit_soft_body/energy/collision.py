@@ -9,12 +9,18 @@ class CollisionEnergy(EnergyFunc):
     def __init__(
         self,
         k: Union[torch.Tensor, float],
+        device: Union[torch.device, str] = 'cpu'
     ):
         """
         Args:
             k: Collision energy coefficient
         """
-        self.__k: Union[torch.Tensor, float] = k
+        if isinstance(k, torch.Tensor):
+            self.__k = k.to(device)
+        else:
+            self.__k = k
+        self.device = device
+        
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

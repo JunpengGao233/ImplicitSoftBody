@@ -5,17 +5,23 @@ from .base import EnergyFunc
 
 
 class TriangleEnergy(EnergyFunc):
-    def __init__(self, mu: float, lamb: float, init_elements: torch.Tensor):
+    def __init__(self, mu: float,
+        lamb: float, 
+        init_elements: torch.Tensor,
+        device:Union[torch.device, str]='cpu'):
         """
         Args:
             mu: Neo-Hookean energy coefficient
             lamb: Neo-Hookean energy coefficient
 
         """
+        
         self.__mu = mu
         self.__lamb = lamb
+        self.device = device
         num_triangles = init_elements.shape[0]
-        weight_matrix = torch.zeros((num_triangles,2,2))
+        weight_matrix = torch.zeros((num_triangles,2,2), device=device)
+        init_elements = init_elements.to(device)
         e = init_elements[:, 1] - init_elements[:, 0]
         f = init_elements[:, 2] - init_elements[:, 0]
         # print(init_elements[0])
@@ -23,7 +29,7 @@ class TriangleEnergy(EnergyFunc):
         weight_matrix[:,1] = f
         weight_matrix = torch.transpose(weight_matrix, 1, 2)
         weight_matrix_inv = torch.inverse(weight_matrix)
-        self.grad_undeformed_sample_weight = torch.zeros((num_triangles,3,2))
+        self.grad_undeformed_sample_weight = torch.zeros((num_triangles,3,2), device=device)
         self.grad_undeformed_sample_weight[:,0] = -weight_matrix_inv[:,0] - weight_matrix_inv[:,1]
         self.grad_undeformed_sample_weight[:,1] = weight_matrix_inv[:,0]
         self.grad_undeformed_sample_weight[:,2] = weight_matrix_inv[:,1]
@@ -46,8 +52,8 @@ class TriangleEnergy(EnergyFunc):
         mu = self.__mu
         lamb = self.__lamb
         dim = verts.shape[-1]
-        F = torch.zeros((verts.shape[0], dim, dim))
-        element_matrix = torch.zeros((x.shape[0],2,2))
+        F = torch.zeros((verts.shape[0], dim, dim), device=self.device)
+        element_matrix = torch.zeros((x.shape[0],2,2), device=self.device)
         e = x[:, 1] - x[:, 0]
         f = x[:, 2] - x[:, 0]
         element_matrix[:,0] = e
