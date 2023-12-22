@@ -1,9 +1,14 @@
+# Dataset
+*/trajectory
+*/dataset
+
 # Mac OS X
-assets/
-*/assets
 .DS_Store
 */.DS_Store
 .vscode
+
+# Model files
+*.pt
 
 # Project Output
 /output

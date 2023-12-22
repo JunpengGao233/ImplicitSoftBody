@@ -11,7 +11,7 @@ SPRINGS = np.array([[2, 4], [8, 1], [1, 12], [12, 8], [15, 11], [15, 16], [16, 1
 
 mesh_path = os.path.join(IMPLICIT_SOFT_BODY_MESH_ROOT, "normalized_mesh_0.json")
 
-with open("normalized_mesh_0.json", 'r') as f:
+with open(mesh_path, 'r') as f:
     json_dict = json.load(f)    
 pos = np.array(json_dict['pos'])
 triangles = np.array(json_dict['triangles'])
@@ -35,5 +35,5 @@ pos = (pos - center_pos) * scale + center_pos_default
 
 # write new mesh to json
 json_dict['pos'] = pos.tolist()
-with open("normalized_mesh_0.json", 'w') as f:
+with open(mesh_path, "w") as f:
     json.dump(json_dict, f)
