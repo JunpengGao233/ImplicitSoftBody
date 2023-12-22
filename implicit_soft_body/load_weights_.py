@@ -25,7 +25,6 @@ max_abs_da = policy_dict['max_abs_da']
 center_vertex_id = policy_dict['center_vertex_id']
 forward_vertex_id = policy_dict['forward_vertex_id']
 
-print(center_vertex_id)
 print(f"min_a {min_a}, max_abs_da {max_abs_da}")
 
 class MLP(nn.Module):
@@ -60,13 +59,13 @@ test_tensor = torch.ones((fc1_weights_np.shape[1],))
 predict = model(test_tensor)
 
 
-def postprocess(action:torch.Tensor, action_change:torch.Tensor,noise_std:Optional[float]= None, max_abs_da:float=max_abs_da, min_a:float=min_a):
+def postprocess(action:torch.Tensor, action_change:torch.Tensor,noise_std:Optional[float]= None, max_abs_da:float=max_abs_da, min_a:float=min_a, max_a:float=1.0):
     if noise_std is not None:
-        action_change += noise_std * torch.randn_like(action_change)
-    # action_change = torch.clamp(action_change, min=-max_abs_da, max=max_abs_da)
+        action_change = action_change +  noise_std * torch.randn_like(action_change)
+    action_change = torch.clamp(action_change, min=-max_abs_da, max=max_abs_da)
     
     action = action + action_change
-    action = torch.clamp(action, min=0.25, max=1.0)
+    action = torch.clamp(action, min=min_a, max=max_a)
     return action
     
 

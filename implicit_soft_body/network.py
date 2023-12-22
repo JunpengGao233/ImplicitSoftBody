@@ -11,14 +11,18 @@ class MLP(torch.nn.Module):
 
     def __init__(self, input_size,output_size,hidden_size=112):
         super().__init__()
-        model = nn.Sequential(
+        self.network = nn.Sequential(
         nn.Linear(input_size, hidden_size),
         nn.ReLU(),
+        # nn.Linear(hidden_size, hidden_size),
+        # nn.ReLU(),
+        # nn.Linear(hidden_size, hidden_size),
+        # nn.ReLU(),
         nn.Linear(hidden_size, output_size),
-        nn.Tanh()
+        # nn.Tanh()
+        # nn.Sigmoid()
         )
 
-        self.network = model
 
     def forward(self, x):
         """Forward pass"""
