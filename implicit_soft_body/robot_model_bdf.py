@@ -122,8 +122,8 @@ if __name__ == '__main__':
         np.save('losses.npy', losses)
         actuation_seq = np.array(actuation_seq)
         output = render_robot(actuation_seq)
-        with open(f'vis{epoch}.html', 'w') as f:
-            f.write(output)
+        # with open(f'vis{epoch}.html', 'w') as f:
+        #     f.write(output)
         # loss = closure()
         # make_dot(loss).render("attached", format="png")
         with np.printoptions(precision=3):
@@ -137,6 +137,8 @@ if __name__ == '__main__':
             model_dict = network.state_dict()
             torch.save(model_dict, "policy_train.pt")
             np.save('actuation_seq_best.npy', actuation_seq)
+            with open(f'vis{epoch}.html', 'w') as f:
+                f.write(output)
         # print(actuation_seq)
     actuation_seq = np.array(actuation_seq)
     np.save('actuation_seq.npy', actuation_seq) 
