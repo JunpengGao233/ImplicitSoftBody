@@ -2,7 +2,7 @@ from implicit_soft_body.robot_model import SimpleRobot
 from implicit_soft_body.utils import postprocess, preprocess
 from implicit_soft_body.network import MLP
 from implicit_soft_body.visualization import render_robot
-from implicit_soft_body import IMPLICIT_SOFT_BODY_POLICY_ROOT
+from implicit_soft_body import IMPLICIT_SOFT_BODY_ROOT
 import torch
 import os
 import numpy as np
@@ -11,7 +11,8 @@ import numpy as np
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 robot = SimpleRobot(device=device)
-model_path = os.path.join(IMPLICIT_SOFT_BODY_POLICY_ROOT, "policy_train.pt")
+# make sure the model is trained before running this script
+model_path = os.path.join(IMPLICIT_SOFT_BODY_ROOT,"..","output" "policy_train.pt")
 output_path = "output"
 os.makedirs(output_path, exist_ok=True)
 
