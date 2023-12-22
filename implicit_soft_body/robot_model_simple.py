@@ -5,7 +5,6 @@ import numpy as np
 import system
 from network import MLP
 from load_weights import model, preprocess, postprocess
-from visualization import render_robot
 import json 
 
 # from torchviz import make_dot
@@ -58,12 +57,11 @@ class SimpleRobot(system.MassSpringSystem):
 if __name__ == '__main__':
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # device = 'cpu'
-    # robot = SimpleRobot(device=device)
-    robot = SpringRobot(device=device)
+    robot = SimpleRobot(device=device)
 
 
     # x2 = robot.forward(robot.x)
-    num_epochs = 100
+    num_epochs = 10
     num_frames = 50
     loss_history = []
     input_size = robot.x.shape[0]
@@ -75,9 +73,8 @@ if __name__ == '__main__':
     network = network.to(device)
     # pretrained model
     # network.load_state_dict(torch.load("policy.pt"))
-    optimizer = torch.optim.Adam(network.parameters(),lr=1e-2,maximize=True)
+    optimizer = torch.optim.Adam(network.parameters(),lr=1e-3)
     loss_last = 1e10
-    losses = []
     for epoch in range(num_epochs):
         print(f'epoch {epoch}')
         actuation_seq = []
@@ -92,31 +89,22 @@ if __name__ == '__main__':
                 x = x.to(device)
                 v = v.to(device)
                 a = a.to(device)
-                # a = network(preprocess(x,v, center_id=8, forward_id=6))
-                # a = a + torch.randn_like(a) * 0.15 # add noise
-                a = network(torch.cat([x.flatten()-robot.x.flatten(),v.flatten()], dim=0))
-                a = 0.4 * torch.nn.functional.tanh(a) + 0.6
+                a = network(preprocess(x,v, center_id=8, forward_id=6))
+                a = a + torch.randn_like(a) * 0.15 # add noise
                 # a = postprocess(a, da)
-                # a = torch.clamp(a, min=0.25, max=1.25)
+                a = torch.clamp(a, min=0.25, max=1.25)
                 x, v = robot.forward(x, v, a)
                 actuation_seq.append(a.detach().cpu().numpy())
-            curr_p = robot.x_pos(x)
-            loss = curr_p - last_p
-                # loss += curr_p - last_p
-                # last_p = curr_p
+                curr_p = robot.x_pos(x)
+                loss += curr_p - last_p
+                last_p = curr_p
                 
             # loss /= num_frames
-            # loss *= -1
+            loss *= -1
             loss.backward()
             return loss
     
         loss = optimizer.step(closure)
-        losses.append(loss.item())
-        np.save('losses.npy', losses)
-        actuation_seq = np.array(actuation_seq)
-        output = render_robot(actuation_seq)
-        with open(f'vis{epoch}.html', 'w') as f:
-            f.write(output)
         # loss = closure()
         # make_dot(loss).render("attached", format="png")
         with np.printoptions(precision=3):

@@ -11,6 +11,7 @@ from energy.inertial import InertialEnergy
 from typing import Union
 from network import MLP
 import Sim
+import Sim_BDF
 
 
 class MassSpringSystem:
@@ -60,20 +61,29 @@ class MassSpringSystem:
         x, v = Sim.DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
         return x, v
 
+    def bdf_forward(self, x0: torch.Tensor, x1:torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        x, v = Sim_BDF.DiffSimBDF.apply(x1, x0, v0, a, self.dt, self.max_iter, self)
+        return x, v
+
     def x_pos(self, x: torch.Tensor):
-        return x[:, 0].mean()
+        # return x[:, 1].mean()
+        # return x[27, 0]
+        return  x[:, 0].mean()
 
     def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt
 
         # spring_vertices = x[self.springs]
+        springs_vertices_0 = x.index_select(0,self.springs[:,0])#[0]
+        springs_vertices_1 = x.index_select(0, self.springs[:,1])#[0]
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
+        
         potential_energy += self.spring_energy.forward(
-            x[self.springs[:,0]], x[self.springs[:,1]], a
+            springs_vertices_0, springs_vertices_1, a
         )
         potential_energy += self.neohookean_energy.forward(
-            x0[self.triangles], x[self.triangles]
+            x[self.triangles]
         )
 
         external_energy = 0
@@ -82,6 +92,31 @@ class MassSpringSystem:
 
         inertial_energy = 0
         inertial_energy += self.inertial_energy.forward(x, x0, v0)
+        return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
+
+    def total_energy_bdf(self, x0:torch.Tensor, x1: torch.Tensor, x:torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        dt = self.dt
+
+        # spring_vertices = x[self.springs]
+        springs_vertices_0 = x.index_select(0,self.springs[:,0])#[0]
+        springs_vertices_1 = x.index_select(0, self.springs[:,1])#[0]
+        potential_energy = 0
+        potential_energy += self.gravity_energy.forward(x)
+        
+        potential_energy += self.spring_energy.forward(
+            springs_vertices_0, springs_vertices_1, a
+        )
+        potential_energy += self.neohookean_energy.forward(
+            x[self.triangles]
+        )
+
+        external_energy = 0
+        external_energy += self.collison_energy.forward(x)
+        external_energy += self.friction_energy.forward(x0, x)
+
+        inertial_energy = 0
+        # inertial_energy += self.inertial_energy.forward(x, x0, v0)
+        inertial_energy += self.inertial_energy.bdf_forward(x, x1, x0, v0)
         return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
 
 
