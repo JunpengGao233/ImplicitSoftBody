@@ -1,16 +1,15 @@
 import torch
 
 # from .geometry.triangle import Triangle
-from energy.neohookean import TriangleEnergy
-from energy.friction import FrictionEnergy
-from energy.collision import CollisionEnergy
-from energy.spring import SpringEnergy
-from energy.gravity import GravityEnergy
-from energy.inertial import InertialEnergy
+from .energy.neohookean import TriangleEnergy
+from .energy.friction import FrictionEnergy
+from .energy.collision import CollisionEnergy
+from .energy.spring import SpringEnergy
+from .energy.gravity import GravityEnergy
+from .energy.inertial import InertialEnergy
 
 from typing import Union
-from network import MLP
-import Sim
+from .Sim import DiffSim
 
 
 class MassSpringSystem:
@@ -57,7 +56,7 @@ class MassSpringSystem:
             self.vertices.append(vertex)
 
     def forward(self, x0: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
-        x, v = Sim.DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
+        x, v = DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
         return x, v
 
     def x_pos(self, x: torch.Tensor):
@@ -103,4 +102,4 @@ if __name__ == "__main__":
     }
     system = MassSpringSystem(x, springs, triangles, params)
     system.forward(x)
-    system.backward(x)
+

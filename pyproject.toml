@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "implicit-soft-body"
+name = "implicit_soft_body"
 version = "0.1.0"
 description = ""
 authors = []
@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-
+jinja2 = "^3.0.1"
 # Please install the jax package manually
 # jax = "^0.4.20"
 # jaxlib = {extras=["cuda"], version = "^0.4.20"}
