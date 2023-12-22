@@ -34,9 +34,41 @@ if __name__=="__main__":
     random_actions = np.random.rand(100, actions.shape[1]) * 0.5 + 0.9
     random_actions = random_actions * actions
 
+    import json
+    with open("normalized_mesh_0.json", 'r') as f:
+        json_dict = json.load(f)    
+    pos = np.array(json_dict['pos'])
+    triangles = np.array(json_dict['triangles'])
+    muscles = np.array(json_dict['springs'])
+
+
+    # # Scale robots to the same size
+    # max_pos = np.max(pos, axis=0)
+    # min_pos = np.min(pos, axis=0)
+
+    # max_pos_default = np.max(__POS, axis=0)
+    # min_pos_default = np.min(__POS, axis=0)
+
+    # scale = (max_pos_default - min_pos_default) / (max_pos - min_pos)
+
+    # # translate to the same center
+    # center_pos = (max_pos + min_pos) / 2
+    # center_pos_default = (max_pos_default + min_pos_default) / 2
+    # pos = (pos - center_pos) * scale + center_pos_default
+
+
+    # output = render_robot(pos=pos, triangles=triangles, muscles=muscles)
+
     # output = render_robot(random_actions)
     best_action = np.load("actuation_seq_best.npy")
-    output = render_robot(best_action)
+    output = render_robot(best_action, pos=pos, triangles=triangles, muscles=muscles)
     with open('best_trained.html', 'w') as f:
         f.write(output)
+    # with open('output.html', 'w') as f:
+    #     f.write(output)
+    
+    # write new mesh to json
+    # json_dict['pos'] = pos.tolist()
+    # with open("normalized_mesh_0.json", 'w') as f:
+    #     json.dump(json_dict, f)
 

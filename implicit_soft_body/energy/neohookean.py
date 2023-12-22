@@ -37,7 +37,7 @@ class TriangleEnergy(EnergyFunc):
         # print(weight_matrix_inv[0])
 
     def forward(
-        self, x0: torch.Tensor, x: torch.Tensor
+        self, x: torch.Tensor
     ) -> torch.Tensor:
         """
         Forward Neo-Hookean energy function.

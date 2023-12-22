@@ -5,6 +5,10 @@ assets/
 */.DS_Store
 .vscode
 
+# Project Output
+/output
+*/output
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
