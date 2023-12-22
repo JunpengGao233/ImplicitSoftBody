@@ -27,7 +27,7 @@ The folder `scripts` contains different scripts using the package.
 
 ### To run the code
 
-1. Install Depencencies and locally install the package (Tested on Python 3.9)
+1. Install Depencencies (`jinja2`,`numpy`, `Pytorch`)and locally install the package (Tested on Python 3.9)
     `pip install -e .` . In addition, **Pytorch** should be installed.
 
 2.  Run the script `case_0.py` or

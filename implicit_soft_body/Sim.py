@@ -39,7 +39,7 @@ class DiffSim(torch.autograd.Function):
             if torch.norm(loss-loss_last)/loss < 1e-5:
                 break
             loss_last = loss
-        print(f'epoch {epoch_i}: loss {loss.item()}, dx {torch.norm(dx)}')
+        # print(f'epoch {epoch_i}: loss {loss.item()}, dx {torch.norm(dx)}')
         if mode == 'bdf':
             x = x1 + dx
             v = (3*x - 4*x1 + x0)/(2*dt)
