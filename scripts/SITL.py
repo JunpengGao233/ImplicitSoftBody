@@ -15,7 +15,7 @@ if __name__ == '__main__':
     device = 'cpu'
     robot = SpringRobot('cpu')
 
-    num_epochs = 100
+    num_epochs = 20
     num_frames = 100
     loss_history = []
     input_size = robot.x.shape[0]
@@ -46,8 +46,8 @@ if __name__ == '__main__':
                     a1 = torch.tensor(traj_dict['a1'])
                 a = network(torch.cat([x0.flatten()-robot.x0.flatten(),v0.flatten()], dim=0))
                 a = 0.4 * torch.nn.functional.tanh(a) + 0.6
-                loss += (a1- a).pow(2).mean()
-                # loss += (x_target - x).pow(2).mean()
+                x, v= robot.forward(x, v, a)
+                loss += (x_target - x).pow(2).mean()
                 actuation_seq.append(a.detach().cpu().numpy())
             loss.backward(retain_graph=True)
             # print(a0.grad)
@@ -58,7 +58,7 @@ if __name__ == '__main__':
             print(f'training epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
         loss_history.append(loss.item())
         loss_last = loss
-        if loss >= np.max(loss_history):
+        if loss <= np.max(loss_history):
             print("saving best, loss:", loss)
             np.save('actuation_seq_best.npy', actuation_seq)
             torch.save(
@@ -67,7 +67,7 @@ if __name__ == '__main__':
             )
     actuation_seq = np.array(actuation_seq)
     output = render_robot(actuation_seq)
-    with open(f'final.html', 'w') as f:
+    with open(f'SITL.html', 'w') as f:
         f.write(output)
     x = robot.x
     v = robot.v

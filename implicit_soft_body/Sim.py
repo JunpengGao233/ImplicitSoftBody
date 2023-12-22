@@ -57,15 +57,19 @@ class DiffSim(torch.autograd.Function):
         xh, x, v0, v, a = ctx.saved_tensors
         x = x.detach().clone().requires_grad_(True)
         a = a.detach().clone().requires_grad_(True)
-        def energy_partial(x):
-            x = x.reshape(-1,2)
-            if len(xh) == 2:
+        if len(xh) == 2:
+            def energy_partial(x):
+                x = x.reshape(-1,2)
                 x0 = xh[0]
                 x1 = xh[1]
-                return ctx.robot.total_energy_bdf(x0, x1, x, v0, a)
-            elif len(xh) == 1:
+                E = ctx.robot.total_energy_bdf(x0, x1, x, v0, a)
+                return E
+        else:
+            def energy_partial(x):
+                x = x.reshape(-1,2)
                 x0 = xh
-                return ctx.robot.total_energy_euler(x0, x, v0, a)
+                E = ctx.robot.total_energy_euler(x0, x, v0, a)
+                return E
         with torch.enable_grad():
             x_flat = x.flatten()
             E = energy_partial(x_flat)
