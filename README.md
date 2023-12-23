@@ -1,18 +1,12 @@
 # ImplicitSoftBody
 
 ### Package 
-|--implicit_soft_body
-|  |-- energy: all the energy class defined
-|  |-- network: neural network class
-|  |--
-
-
-├── implicit_soft_body
-├── energy : all the energy class
-├── network.py : neural network class
-├── system.py : base robot class
-├── robot_model.py : include all the robot models
-├── Sim.py : differentiable simulator
+├── implicit_soft_body<br>
+├── energy : all the energy class<br> 
+├── network.py : neural network class<br>  
+├── system.py : base robot class<br> 
+├── robot_model.py : include all the robot models<br>  
+├── Sim.py : differentiable simulator<br>  
 
 
 ### Script Folder
@@ -24,7 +18,10 @@ The folder `scripts` contains different scripts using the package.
 * `simulate.py` loads a trained model to simulate and output the sequence of actuations for visualization
 * `train.py` trains a model to predict the actuation given the position and velocity of nodes of soft robot.
 * `visualize_actuation_seq.py`: visualize the motion of soft robot given the sequence of actuation.
-
+* `robot_model_euler.py`: use implicit euler integrator to optimize the walk but stuck in local minimum, results in `assets/example/vis_euler_12.html`
+* `supervised_learning.py`: use supervised learning to learn the actuation signals directly, resutls can be found in `assets/example/final99.html`
+* `robot_model_bdf.py`: use bdf2 integrator to optimize the walk, results in `assets/example/bdf31.html`
+* `SITL.py`: use Solver-in-the-loop training strategy.
 ### To run the code
 
 1. Install Depencencies (`jinja2`,`numpy`, `Pytorch`)and locally install the package (Tested on Python 3.9)
