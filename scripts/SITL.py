@@ -15,7 +15,7 @@ if __name__ == '__main__':
     device = 'cpu'
     robot = SpringRobot('cpu')
 
-    num_epochs = 20
+    num_epochs = 40
     num_frames = 100
     loss_history = []
     input_size = robot.x.shape[0]
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     torch.random.manual_seed(42)
     network = MLP(4*input_size, output_size)
     network = network.to(device)
-    optimizer = torch.optim.Adam(network.parameters(),lr=1e-2,weight_decay=1e-4)
+    optimizer = torch.optim.Adam(network.parameters(),lr=1e-3,weight_decay=1e-4)
     loss_last = 0
     prepare_steps = 10
     for epoch in range(num_epochs):
@@ -37,19 +37,19 @@ if __name__ == '__main__':
             for i in range(num_frames):
                 x = x.to(device)
                 v = v.to(device)
-                traj_file_path = os.path.join(__CURRENT_PATH,  f"trajectory/{i}.json")
+                traj_file_path = os.path.join(__CURRENT_PATH,  f"../assets/trajectory/{i}.json")
                 with open(traj_file_path) as f:
                     traj_dict = json.load(f)
                     x_target = torch.tensor(traj_dict['pos1'])
                     x0 = torch.tensor(traj_dict['pos0'])
                     v0 = torch.tensor(traj_dict['vel0'])
-                    a1 = torch.tensor(traj_dict['a1'])
                 a = network(torch.cat([x0.flatten()-robot.x0.flatten(),v0.flatten()], dim=0))
                 a = 0.4 * torch.nn.functional.tanh(a) + 0.6
                 x, v= robot.forward(x, v, a)
                 loss += (x_target - x).pow(2).mean()
                 actuation_seq.append(a.detach().cpu().numpy())
-            loss.backward(retain_graph=True)
+            loss /= num_frames
+            loss.backward()
             # print(a0.grad)
             return loss
     
@@ -58,81 +58,14 @@ if __name__ == '__main__':
             print(f'training epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
         loss_history.append(loss.item())
         loss_last = loss
-        if loss <= np.max(loss_history):
+        if loss <= np.min(loss_history):
             print("saving best, loss:", loss)
             np.save('actuation_seq_best.npy', actuation_seq)
             torch.save(
                 network.state_dict(),
                 f"network_best.pth",
             )
-    actuation_seq = np.array(actuation_seq)
-    output = render_robot(actuation_seq)
-    with open(f'SITL.html', 'w') as f:
-        f.write(output)
-    x = robot.x
-    v = robot.v
-    actuation_seq = np.concatenate([actuation_seq, actuation_seq], axis=0)
-    for i in range(actuation_seq.shape[0]):
-        a = torch.tensor(actuation_seq[i])
-        x, v = robot.forward(x, v, a)
-    robot.x1 = x
-    robot.v1 = v
-    
-    # num_epochs = 200
-    # num_frames = 50
-    # loss_history = []
-    # input_size = robot.x.shape[0]
-    # output_size = robot.l0.shape[0]
-    # torch.random.manual_seed(42)
-    # network2 = MLP(4*input_size, output_size, 32)
-    # network = network.to(device)
-    # optimizer = torch.optim.Adam(network2.parameters(),lr=1e-2)#, maximize=True)
-    # loss_last = 1e10
-    # for epoch in range(num_epochs):
-    #     print(f'epoch {epoch}')
-    #     actuation_seq2 = []
-    #     def closure():
-    #         optimizer.zero_grad()
-    #         x = robot.x1
-    #         v = robot.v1
-    #         a = torch.ones_like(robot.l0)
-    #         last_p = robot.x_pos(x)
-    #         loss = 0
-    #         for i in range(num_frames):
-    #             x = x.to(device)
-    #             v = v.to(device)
-    #             a = a.to(device)
-    #             a = network2(torch.cat([x.flatten()-robot.x.flatten(),v.flatten()], dim=0))
-    #             a = 0.4 * torch.nn.functional.tanh(a) + 0.6
-    #             x, v = robot.forward(x, v, a)
-    #             actuation_seq2.append(a.detach().cpu().numpy())
-    #             loss += (x - robot.x).pow(2).mean()
-    #         loss.backward()
-    #         return loss
-    
-    #     loss = optimizer.step(closure)
-    #     with np.printoptions(precision=3):
-    #         print(f'epoch {epoch}: loss {loss.item()}, relative loss change {torch.abs((loss-loss_last)/loss).item()}')
-    #     loss_history.append(loss.item())
-    #     loss_last = loss
-    #     if loss <= np.min(loss_history):
-    #         print("saving best, loss:", loss)
-    #         model_dict = network.state_dict()
-    #         torch.save(model_dict, "policy_train.pt")
-    #         np.save('actuation_seq_best.npy', actuation_seq)
-    #     # print(actuation_seq)
-    #     actuation_seq = np.array(actuation_seq)
-    #     actuation_seq2 = np.array(actuation_seq2)
-    #     print(actuation_seq.shape)
-    #     print(actuation_seq2.shape)
-    #     actuation_seq_n = np.concatenate([actuation_seq, actuation_seq2], axis=0)
-    #     output = render_robot(actuation_seq_n)
-    #     with open(f'stand{epoch}.html', 'w') as f:
-    #         f.write(output)
-
-
-    # actuation_seq = np.array(actuation_seq)
-    # np.save('actuation_seq.npy', actuation_seq) 
-    # np.save('loss_history.npy', loss_history)
-
-
+        actuation_seq = np.array(actuation_seq)
+        output = render_robot(actuation_seq)
+        with open(f'SITL{epoch}.html', 'w') as f:
+            f.write(output)

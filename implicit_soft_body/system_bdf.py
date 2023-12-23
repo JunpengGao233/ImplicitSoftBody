@@ -41,7 +41,6 @@ class MassSpringSystem:
         self.v = torch.zeros_like(self.x, device=device)
         self.v0 = torch.zeros_like(self.x, device=device)
         self.dt = params["dt"]
-        # self.a = (0.5 * torch.ones_like(self.l0)).requires_grad_() if a is None else a
         self.max_iter = params["max_iter"]
         self.device = device
 
@@ -56,20 +55,42 @@ class MassSpringSystem:
             self.vertices.append(vertex)
 
     def forward(self, x0: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        """
+        Euler formulation
+        x0: x_{n-1}
+        v0: v_{n-1}
+        a: actuation
+        """
+
         x, v = DiffSim.apply(x0, v0, a, self.dt, self.max_iter, self)
         return x, v
 
+    def bdf_forward(self, x0: torch.Tensor, x1:torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        """
+        BDF2 formulation
+        x0: x_{n-2}
+        x1: x_{n-1}
+        v0: v_{n-1}
+        a: actuation
+        """
+        xh = torch.stack((x0, x1), dim=0)
+        x, v = DiffSim.apply(xh, v0, a, self.dt, self.max_iter, self)
+        return x, v
+
     def x_pos(self, x: torch.Tensor):
-        return x[:, 0].mean()
+        return  x[:, 0].mean()
 
     def total_energy(self, x0:torch.Tensor, x: torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
         dt = self.dt
 
         # spring_vertices = x[self.springs]
+        springs_vertices_0 = x.index_select(0,self.springs[:,0])#[0]
+        springs_vertices_1 = x.index_select(0, self.springs[:,1])#[0]
         potential_energy = 0
         potential_energy += self.gravity_energy.forward(x)
+        
         potential_energy += self.spring_energy.forward(
-            x[self.springs[:,0]], x[self.springs[:,1]], a
+            springs_vertices_0, springs_vertices_1, a
         )
         potential_energy += self.neohookean_energy.forward(
             x[self.triangles]
@@ -79,9 +100,25 @@ class MassSpringSystem:
         external_energy += self.collison_energy.forward(x)
         external_energy += self.friction_energy.forward(x0, x)
 
-        inertial_energy = 0
-        inertial_energy += self.inertial_energy.forward(x, x0, v0)
-        return dt * dt * (potential_energy + external_energy) + 0.5 * inertial_energy
+        return dt * dt * (potential_energy + external_energy)
+
+    def total_energy_euler(self, x0: torch.Tensor, x:torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        dt = self.dt
+        other_energy = self.total_energy(x0, x, v0, a)
+        inertial_energy = self.inertial_energy_euler(x, x0, v0)
+        return other_energy + 0.5 * inertial_energy
+
+    def total_energy_bdf(self, x0:torch.Tensor, x1: torch.Tensor, x:torch.Tensor, v0: torch.Tensor, a: torch.Tensor):
+        dt = self.dt
+        other_energy = self.total_energy(x1, x, v0, a)
+        inertial_energy = self.inertial_energy_bdf(x, x1, x0, v0)
+        return other_energy + 0.5 * inertial_energy
+    
+    def inertial_energy_bdf(self, x:torch.Tensor, x1:torch.Tensor, x0: torch.Tensor, v0: torch.Tensor):
+        return self.inertial_energy.bdf_forward(x, x1, x0, v0)
+
+    def inertial_energy_euler(self, x0:torch.Tensor, x:torch.Tensor, v0: torch.Tensor):
+        return self.inertial_energy.forward(x, x0, v0)
 
 
 if __name__ == "__main__":
