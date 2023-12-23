@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     # x2 = robot.forward(robot.x)
     num_epochs = 100
-    num_frames = 0
+    num_frames = 50
     loss_history = []
     input_size = robot.x.shape[0]
     output_size = robot.l0.shape[0]
@@ -83,37 +83,27 @@ if __name__ == '__main__':
         actuation_seq = []
         def closure():
             optimizer.zero_grad()
-            x0 = robot.x
+            x0 = x = robot.x
             v0 = robot.v
             a = torch.ones_like(robot.l0)
             x1, v = robot.forward(x0, v0, a)
             a = network(torch.cat([x1.flatten()-robot.x.flatten(),v.flatten()], dim=0))
             a = 0.4 * torch.nn.functional.tanh(a) + 0.6
+            loss = 0.0
             last_p = robot.x_pos(x0)
-            loss = 0
             for i in range(num_frames):
                 x0 = x0.to(device)
                 x = x1.to(device)
                 v = v.to(device)
                 a = a.to(device)
-                # a = network(preprocess(x,v, center_id=8, forward_id=6))
-                # a = a + torch.randn_like(a) * 0.15 # add noise
                 a = network(torch.cat([x1.flatten()-robot.x.flatten(),v.flatten()], dim=0))
                 a = 0.4 * torch.nn.functional.tanh(a) + 0.6
-                # a = postprocess(a, da)
-                # a = torch.clamp(a, min=0.25, max=1.25)
-                # x, v = robot.forward(x, v, a)
                 x, v = robot.bdf_forward(x0, x1, v, a)
                 x0 = x1
                 x1 = x
                 actuation_seq.append(a.detach().cpu().numpy())
             curr_p = robot.x_pos(x)
             loss = curr_p - last_p
-                # loss += curr_p - last_p
-                # last_p = curr_p
-                
-            # loss /= num_frames
-            # loss *= -1
             loss.backward()
             return loss
     
@@ -137,7 +127,7 @@ if __name__ == '__main__':
             model_dict = network.state_dict()
             torch.save(model_dict, "policy_train.pt")
             np.save('actuation_seq_best.npy', actuation_seq)
-            with open(f'vis{epoch}.html', 'w') as f:
+            with open(f'bdf{epoch}.html', 'w') as f:
                 f.write(output)
         # print(actuation_seq)
     actuation_seq = np.array(actuation_seq)

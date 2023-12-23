@@ -23,7 +23,7 @@ if __name__ == '__main__':
     torch.random.manual_seed(42)
     network = MLP(4*input_size, output_size)
     network = network.to(device)
-    optimizer = torch.optim.Adam(network.parameters(),lr=1e-3,weight_decay=1e-4)
+    optimizer = torch.optim.Adam(network.parameters(),lr=5e-2,weight_decay=1e-4)
     loss_last = 0
     prepare_steps = 10
     for epoch in range(num_epochs):

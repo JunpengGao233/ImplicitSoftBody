@@ -9,7 +9,7 @@ from .energy.gravity import GravityEnergy
 from .energy.inertial import InertialEnergy
 
 from typing import Union
-from .Sim import DiffSim
+from .Sim_bdf import DiffSim
 
 
 class MassSpringSystem:
