@@ -52,7 +52,6 @@ class DiffSim(torch.autograd.Function):
     
     @staticmethod
     def backward(ctx, grad_output_x, grad_output_v) -> Any:
-        # print(grad_output_x)
         
         xh, x, v0, v, a = ctx.saved_tensors
         x = x.detach().clone().requires_grad_(True)

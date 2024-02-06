@@ -1,12 +1,15 @@
 # ImplicitSoftBody
 
 ### Package 
-├── implicit_soft_body<br>
-├── energy : all the energy class<br> 
-├── network.py : neural network class<br>  
-├── system.py : base robot class<br> 
-├── robot_model.py : include all the robot models<br>  
-├── Sim.py : differentiable simulator<br>  
+    .
+    ├── implicit_soft_body<br>
+    ├── energy : all the energy class<br> 
+    ├── network.py : neural network class<br>  
+    ├── system.py : base robot class<br> 
+    ├── robot_model.py : include all the robot models<br>  
+    ├── Sim.py : differentiable simulator<br>  
+
+
 
 
 ### Script Folder
@@ -22,6 +25,7 @@ The folder `scripts` contains different scripts using the package.
 * `supervised_learning.py`: use supervised learning to learn the actuation signals directly, resutls can be found in `assets/example/final99.html`
 * `robot_model_bdf.py`: use bdf2 integrator to optimize the walk, results in `assets/example/bdf31.html`
 * `SITL.py`: use Solver-in-the-loop training strategy.
+
 ### To run the code
 
 1. Install Depencencies (`jinja2`,`numpy`, `Pytorch`)and locally install the package (Tested on Python 3.9)
