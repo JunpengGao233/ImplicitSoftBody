@@ -2,12 +2,12 @@
 
 ### Package 
     .
-    ├── implicit_soft_body<br>
-    ├── energy : all the energy class<br> 
-    ├── network.py : neural network class<br>  
-    ├── system.py : base robot class<br> 
-    ├── robot_model.py : include all the robot models<br>  
-    ├── Sim.py : differentiable simulator<br>  
+    ├── implicit_soft_body
+    ├── energy : all the energy class
+    ├── network.py : neural network class
+    ├── system.py : base robot class
+    ├── robot_model.py : include all the robot models
+    ├── Sim.py : differentiable simulator
 
 
 
